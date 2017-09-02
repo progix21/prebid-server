@@ -50,7 +50,6 @@ type pubmaticParams struct {
 	AdSlot      string `json:"adSlot"`
 }
 
-// check endpoint URL for pubmatic tranlator - Ravi sir
 func PrepareLogMessage(tID, pubId, adUnitId, bidID, details string, args ...interface{}) string {
 	return fmt.Sprintf("[PUBMATIC] ReqID [%s] PubID [%s] AdUnit [%s] BidID [%s] %s \n",
 		tID, pubId, adUnitId, bidID, details)
@@ -220,7 +219,6 @@ func (a *PubmaticAdapter) Call(ctx context.Context, req *pbs.PBSRequest, bidder 
 	}
 
 	bids := make(pbs.PBSBidSlice, 0)
-	// To find Winning Bid for each AdUnit
 	for _, bids_list := range bidInfo {
 
 		if len(bids_list) > 1 {
