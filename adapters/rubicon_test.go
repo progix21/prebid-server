@@ -15,7 +15,7 @@ import (
 
 	"fmt"
 
-	"github.com/prebid/openrtb"
+	"github.com/mxmCherry/openrtb"
 )
 
 type rubiAppendTrackerUrlTestScenario struct {
@@ -226,7 +226,8 @@ func TestRubiconBasicResponse(t *testing.T) {
 	}
 	for i, tag := range rubidata.tags {
 		pbin.AdUnits[i] = pbs.AdUnit{
-			Code: tag.code,
+			Code:       tag.code,
+			MediaTypes: []string{"BANNER"},
 			Sizes: []openrtb.Format{
 				{
 					W: 300,

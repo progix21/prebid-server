@@ -14,7 +14,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	"github.com/prebid/openrtb"
+	"github.com/mxmCherry/openrtb"
 	"github.com/prebid/prebid-server/pbs"
 	"golang.org/x/net/context/ctxhttp"
 )
@@ -56,7 +56,12 @@ func PrepareLogMessage(tID, pubId, adUnitId, bidID, details string, args ...inte
 }
 
 func (a *PubmaticAdapter) Call(ctx context.Context, req *pbs.PBSRequest, bidder *pbs.PBSBidder) (pbs.PBSBidSlice, error) {
-	pbReq := makeOpenRTBGeneric(req, bidder, a.FamilyName())
+	mediaTypes := []pbs.MediaType{pbs.MEDIA_TYPE_BANNER, pbs.MEDIA_TYPE_VIDEO}
+	pbReq, err := makeOpenRTBGeneric(req, bidder, a.FamilyName(), mediaTypes, true)
+	if err != nil {
+		glog.Warningf("[PUBMATIC] Failed to make ortb request for request id [%s] \n", pbReq.ID)
+		return nil, err
+	}
 
 	adSlotFlag := false
 	pubId := ""
@@ -149,12 +154,13 @@ func (a *PubmaticAdapter) Call(ctx context.Context, req *pbs.PBSRequest, bidder 
 		bidder.Debug = append(bidder.Debug, debug)
 	}
 
+	userId, _, _ := req.Cookie.GetUID(a.FamilyName())
 	httpReq, err := http.NewRequest("POST", a.URI, bytes.NewBuffer(reqJSON))
 	httpReq.Header.Add("Content-Type", "application/json;charset=utf-8")
 	httpReq.Header.Add("Accept", "application/json")
 	httpReq.AddCookie(&http.Cookie{
 		Name:  "KADUSERCOOKIE",
-		Value: req.GetUserID(a.FamilyName()),
+		Value: userId,
 	})
 
 	pbResp, err := ctxhttp.Do(ctx, a.http.Client, httpReq)
@@ -211,6 +217,8 @@ func (a *PubmaticAdapter) Call(ctx context.Context, req *pbs.PBSRequest, bidder 
 				Height:      bid.H,
 				DealId:      bid.DealID,
 			}
+			pbid.CreativeMediaType = "banner"
+
 			bidInfo[pbid.AdUnitCode] = append(bidInfo[pbid.AdUnitCode], &pbid)
 
 			glog.Infof("[PUBMATIC] Received Bid for PubID [%s] AdUnit [%s] BidID [%s] Size [%dx%d] Price [%f] \n",

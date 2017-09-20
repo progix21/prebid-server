@@ -6,7 +6,7 @@ Server side component to offload prebid processing to the cloud
 # Discussion group for development / adapter testing
 http://redditadops.slack.com channel headerbidding-dev
 
-# Current Status of Adapters (Sep 19, 2017)
+# Current Status of Adapters (Sep 20, 2017)
 Working on live sites:
 - AppNexus Web
 - Audience Network (Facebook) Web

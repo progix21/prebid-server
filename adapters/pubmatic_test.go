@@ -1,6 +1,7 @@
 package adapters
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -11,7 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/prebid/openrtb"
+	"github.com/mxmCherry/openrtb"
+	"github.com/prebid/prebid-server/cache/dummycache"
 	"github.com/prebid/prebid-server/pbs"
 )
 
@@ -111,11 +113,12 @@ func TestPubmaticTimeout(t *testing.T) {
 		BidderCode: "bannerCode",
 		AdUnits: []pbs.PBSAdUnit{
 			{
-				Code: "unitCode",
+				Code:       "unitCode",
+				MediaTypes: []pbs.MediaType{pbs.MEDIA_TYPE_BANNER},
 				Sizes: []openrtb.Format{
 					{
-						W: 10,
-						H: 12,
+						W: 120,
+						H: 240,
 					},
 				},
 				Params: json.RawMessage("{\"publisherId\": \"10\", \"adSlot\": \"slot@120x240\"}"),
@@ -145,11 +148,12 @@ func TestPubmaticInvalidJson(t *testing.T) {
 		BidderCode: "bannerCode",
 		AdUnits: []pbs.PBSAdUnit{
 			{
-				Code: "unitCode",
+				Code:       "unitCode",
+				MediaTypes: []pbs.MediaType{pbs.MEDIA_TYPE_BANNER},
 				Sizes: []openrtb.Format{
 					{
-						W: 10,
-						H: 12,
+						W: 120,
+						H: 240,
 					},
 				},
 				Params: json.RawMessage("{\"publisherId\": \"10\", \"adSlot\": \"slot@120x240\"}"),
@@ -180,11 +184,12 @@ func TestPubmaticInvalidStatusCode(t *testing.T) {
 		BidderCode: "bannerCode",
 		AdUnits: []pbs.PBSAdUnit{
 			{
-				Code: "unitCode",
+				Code:       "unitCode",
+				MediaTypes: []pbs.MediaType{pbs.MEDIA_TYPE_BANNER},
 				Sizes: []openrtb.Format{
 					{
-						W: 10,
-						H: 12,
+						W: 120,
+						H: 240,
 					},
 				},
 				Params: json.RawMessage("{\"publisherId\": \"10\", \"adSlot\": \"slot@120x240\"}"),
@@ -207,12 +212,13 @@ func TestPubmaticInvalidInputParameters(t *testing.T) {
 		BidderCode: "bannerCode",
 		AdUnits: []pbs.PBSAdUnit{
 			{
-				Code:  "unitCode",
-				BidID: "bidid",
+				Code:       "unitCode",
+				MediaTypes: []pbs.MediaType{pbs.MEDIA_TYPE_BANNER},
+				BidID:      "bidid",
 				Sizes: []openrtb.Format{
 					{
-						W: 10,
-						H: 12,
+						W: 120,
+						H: 240,
 					},
 				},
 			},
@@ -308,12 +314,13 @@ func TestPubmaticBasicResponse(t *testing.T) {
 		BidderCode: "bannerCode",
 		AdUnits: []pbs.PBSAdUnit{
 			{
-				Code:  "unitCode",
-				BidID: "bidid",
+				Code:       "unitCode",
+				BidID:      "bidid",
+				MediaTypes: []pbs.MediaType{pbs.MEDIA_TYPE_BANNER},
 				Sizes: []openrtb.Format{
 					{
-						W: 10,
-						H: 12,
+						W: 336,
+						H: 280,
 					},
 				},
 				Params: json.RawMessage("{\"publisherId\": \"640\", \"adSlot\": \"slot1@336x280\"}"),
@@ -344,23 +351,25 @@ func TestPubmaticMultiImpressionResponse(t *testing.T) {
 		BidderCode: "bannerCode",
 		AdUnits: []pbs.PBSAdUnit{
 			{
-				Code:  "unitCode1",
-				BidID: "bidid",
+				Code:       "unitCode1",
+				MediaTypes: []pbs.MediaType{pbs.MEDIA_TYPE_BANNER},
+				BidID:      "bidid",
 				Sizes: []openrtb.Format{
 					{
-						W: 10,
-						H: 12,
+						W: 336,
+						H: 280,
 					},
 				},
 				Params: json.RawMessage("{\"publisherId\": \"640\", \"adSlot\": \"slot1@336x280\"}"),
 			},
 			{
-				Code:  "unitCode1",
-				BidID: "bidid",
+				Code:       "unitCode1",
+				MediaTypes: []pbs.MediaType{pbs.MEDIA_TYPE_BANNER},
+				BidID:      "bidid",
 				Sizes: []openrtb.Format{
 					{
-						W: 120,
-						H: 312,
+						W: 800,
+						H: 200,
 					},
 				},
 				Params: json.RawMessage("{\"publisherId\": \"640\", \"adSlot\": \"slot1@800x200\"}"),
@@ -390,23 +399,25 @@ func TestPubmaticMultiAdUnitResponse(t *testing.T) {
 		BidderCode: "bannerCode",
 		AdUnits: []pbs.PBSAdUnit{
 			{
-				Code:  "unitCode1",
-				BidID: "bidid",
+				Code:       "unitCode1",
+				MediaTypes: []pbs.MediaType{pbs.MEDIA_TYPE_BANNER},
+				BidID:      "bidid",
 				Sizes: []openrtb.Format{
 					{
-						W: 10,
-						H: 12,
+						W: 336,
+						H: 280,
 					},
 				},
 				Params: json.RawMessage("{\"publisherId\": \"640\", \"adSlot\": \"slot1@336x280\"}"),
 			},
 			{
-				Code:  "unitCode2",
-				BidID: "bidid",
+				Code:       "unitCode2",
+				MediaTypes: []pbs.MediaType{pbs.MEDIA_TYPE_BANNER},
+				BidID:      "bidid",
 				Sizes: []openrtb.Format{
 					{
-						W: 120,
-						H: 100,
+						W: 800,
+						H: 200,
 					},
 				},
 				Params: json.RawMessage("{\"publisherId\": \"640\", \"adSlot\": \"slot1@800x200\"}"),
@@ -437,12 +448,13 @@ func TestPubmaticMobileResponse(t *testing.T) {
 		BidderCode: "bannerCode",
 		AdUnits: []pbs.PBSAdUnit{
 			{
-				Code:  "unitCode",
-				BidID: "bidid",
+				Code:       "unitCode",
+				BidID:      "bidid",
+				MediaTypes: []pbs.MediaType{pbs.MEDIA_TYPE_BANNER},
 				Sizes: []openrtb.Format{
 					{
-						W: 10,
-						H: 12,
+						W: 336,
+						H: 280,
 					},
 				},
 				Params: json.RawMessage("{\"publisherId\": \"640\", \"adSlot\": \"slot1@336x280\"}"),
@@ -476,7 +488,6 @@ func TestPubmaticUserSyncInfo(t *testing.T) {
 	if an.usersyncInfo.SupportCORS != false {
 		t.Fatalf("should have been false")
 	}
-
 }
 
 func TestPubmaticInvalidLookupBidIDParameter(t *testing.T) {
@@ -493,11 +504,12 @@ func TestPubmaticInvalidLookupBidIDParameter(t *testing.T) {
 		BidderCode: "bannerCode",
 		AdUnits: []pbs.PBSAdUnit{
 			{
-				Code: "unitCode",
+				Code:       "unitCode",
+				MediaTypes: []pbs.MediaType{pbs.MEDIA_TYPE_BANNER},
 				Sizes: []openrtb.Format{
 					{
-						W: 10,
-						H: 12,
+						W: 120,
+						H: 240,
 					},
 				},
 			},
@@ -508,11 +520,9 @@ func TestPubmaticInvalidLookupBidIDParameter(t *testing.T) {
 	_, err := an.Call(ctx, &pbReq, &pbBidder)
 
 	CompareStringValue(err.Error(), "Unknown ad unit code 'unitCode'", t)
-
 }
 
 func TestPubmaticAdSlotParams(t *testing.T) {
-
 	server := httptest.NewServer(http.HandlerFunc(DummyPubMaticServer))
 	defer server.Close()
 
@@ -525,12 +535,13 @@ func TestPubmaticAdSlotParams(t *testing.T) {
 		BidderCode: "bannerCode",
 		AdUnits: []pbs.PBSAdUnit{
 			{
-				Code:  "unitCode",
-				BidID: "bidid",
+				Code:       "unitCode",
+				BidID:      "bidid",
+				MediaTypes: []pbs.MediaType{pbs.MEDIA_TYPE_BANNER},
 				Sizes: []openrtb.Format{
 					{
-						W: 10,
-						H: 12,
+						W: 120,
+						H: 240,
 					},
 				},
 			},
@@ -594,5 +605,54 @@ func TestPubmaticAdSlotParams(t *testing.T) {
 	bids, err = an.Call(ctx, &pbReq, &pbBidder)
 	if err != nil && len(bids) != 1 {
 		t.Fatalf("Should not return err")
+	}
+}
+
+func TestPubmaticSampleRequest(t *testing.T) {
+
+	server := httptest.NewServer(http.HandlerFunc(DummyPubMaticServer))
+	defer server.Close()
+
+	pbReq := pbs.PBSRequest{
+		AdUnits: make([]pbs.AdUnit, 1),
+	}
+	pbReq.AdUnits[0] = pbs.AdUnit{
+		Code: "adUnit_1",
+		Sizes: []openrtb.Format{
+			{
+				W: 100,
+				H: 120,
+			},
+		},
+		Bids: []pbs.Bids{
+			{
+				BidderCode: "pubmatic",
+				BidID:      "BidID",
+				Params:     json.RawMessage("{\"publisherId\": \"640\", \"adSlot\": \"slot1@100x120\"}"),
+			},
+		},
+	}
+
+	pbReq.IsDebug = true
+
+	body := new(bytes.Buffer)
+	err := json.NewEncoder(body).Encode(pbReq)
+	if err != nil {
+		t.Fatalf("Error when serializing request")
+	}
+
+	httpReq := httptest.NewRequest("POST", server.URL, body)
+	httpReq.Header.Add("Referer", "http://test.com/sports")
+	pc := pbs.ParsePBSCookieFromRequest(httpReq)
+	pc.TrySync("pubmatic", "12345")
+	fakewriter := httptest.NewRecorder()
+	pc.SetCookieOnResponse(fakewriter, "")
+	httpReq.Header.Add("Cookie", fakewriter.Header().Get("Set-Cookie"))
+
+	cacheClient, _ := dummycache.New()
+
+	_, err = pbs.ParsePBSRequest(httpReq, cacheClient)
+	if err != nil {
+		t.Fatalf("Error when parsing request: %v", err)
 	}
 }
