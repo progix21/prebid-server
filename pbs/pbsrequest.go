@@ -221,12 +221,9 @@ func ParsePBSRequest(r *http.Request, cache cache.Cache) (*PBSRequest, error) {
 		pbsReq.User = &openrtb.User{}
 	}
 
-	fmt.Println("DBG Parsed Cookie 11")
 	// use client-side data for web requests
 	if pbsReq.App == nil {
 		pbsReq.Cookie = ParsePBSCookieFromRequest(r)
-		fmt.Println("DBG Parsed Cookie Bday ", pbsReq.Cookie.birthday)
-		fmt.Println("DBG Parsed Cookie Expiry ", pbsReq.Cookie.uids["pubmatic"].Expires)
 		// this would be for the shared adnxs.com domain
 		if anid, err := r.Cookie("uuid2"); err == nil {
 			pbsReq.Cookie.TrySync("adnxs", anid.Value)
