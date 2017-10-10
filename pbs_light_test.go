@@ -1,4 +1,4 @@
-package main
+package prebidServer
 
 import (
 	"bytes"
@@ -9,10 +9,10 @@ import (
 
 	"github.com/mxmCherry/openrtb"
 
+	"github.com/PubMatic-OpenWrap/prebid-server/cache/dummycache"
+	"github.com/PubMatic-OpenWrap/prebid-server/config"
+	"github.com/PubMatic-OpenWrap/prebid-server/pbs"
 	"github.com/julienschmidt/httprouter"
-	"github.com/prebid/prebid-server/cache/dummycache"
-	"github.com/prebid/prebid-server/config"
-	"github.com/prebid/prebid-server/pbs"
 )
 
 func TestCookieSyncNoCookies(t *testing.T) {
@@ -22,7 +22,7 @@ func TestCookieSyncNoCookies(t *testing.T) {
 	}
 	setupExchanges(cfg)
 	router := httprouter.New()
-	router.POST("/cookie_sync", cookieSync)
+	router.POST("/cookie_sync", CookieSync)
 
 	csreq := cookieSyncRequest{
 		UUID:    "abcdefg",
@@ -67,7 +67,7 @@ func TestCookieSyncHasCookies(t *testing.T) {
 	}
 	setupExchanges(cfg)
 	router := httprouter.New()
-	router.POST("/cookie_sync", cookieSync)
+	router.POST("/cookie_sync", CookieSync)
 
 	csreq := cookieSyncRequest{
 		UUID:    "abcdefg",

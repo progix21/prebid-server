@@ -8,9 +8,9 @@ import (
 
 	_ "github.com/lib/pq"
 
+	"github.com/PubMatic-OpenWrap/prebid-server/cache"
 	"github.com/coocood/freecache"
 	"github.com/golang/glog"
-	"github.com/prebid/prebid-server/cache"
 )
 
 type PostgresConfig struct {

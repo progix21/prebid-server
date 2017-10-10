@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/PubMatic-OpenWrap/prebid-server/cache/dummycache"
+	"github.com/PubMatic-OpenWrap/prebid-server/pbs"
 	"github.com/mxmCherry/openrtb"
-	"github.com/prebid/prebid-server/cache/dummycache"
-	"github.com/prebid/prebid-server/pbs"
 )
 
 /**

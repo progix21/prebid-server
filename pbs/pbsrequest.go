@@ -13,10 +13,10 @@ import (
 	"github.com/spf13/viper"
 	"golang.org/x/net/publicsuffix"
 
+	"github.com/PubMatic-OpenWrap/prebid-server/cache"
+	"github.com/PubMatic-OpenWrap/prebid-server/prebid"
 	"github.com/blang/semver"
 	"github.com/mxmCherry/openrtb"
-	"github.com/prebid/prebid-server/cache"
-	"github.com/prebid/prebid-server/prebid"
 )
 
 const MAX_BIDDERS = 8
