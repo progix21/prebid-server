@@ -3,7 +3,7 @@ package prebidServer
 import (
 	"context"
 	"encoding/json"
-	"flag"
+	//	"flag"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -681,7 +681,7 @@ func InitPrebidServer() {
 	viper.SetDefault("adapters.index.usersync_url", "//ssum-sec.casalemedia.com/usermatchredir?s=184932&cb=https%3A%2F%2Fprebid.adnxs.com%2Fpbs%2Fv1%2Fsetuid%3Fbidder%3DindexExchange%26uid%3D")
 	viper.ReadInConfig()
 
-	flag.Parse() // read glog settings from cmd line
+	//flag.Parse() // read glog settings from cmd line
 
 	cfg, err := config.New()
 	if err != nil {
