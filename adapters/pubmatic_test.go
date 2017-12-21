@@ -323,7 +323,7 @@ func TestPubmaticBasicResponse(t *testing.T) {
 						H: 280,
 					},
 				},
-				Params: json.RawMessage("{\"publisherId\": \"640\", \"adSlot\": \"slot1@336x280\"}"),
+				Params: json.RawMessage("{\"publisherId\": \"640\", \"adSlot\": \"4@600x800\", \"wrapper\":{\"version\":1, \"profile\":415}}"),
 			},
 		},
 	}

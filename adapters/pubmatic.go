@@ -45,8 +45,9 @@ func (a *PubmaticAdapter) SkipNoCookies() bool {
 }
 
 type pubmaticParams struct {
-	PublisherId string `json:"publisherId"`
-	AdSlot      string `json:"adSlot"`
+	PublisherId string          `json:"publisherId"`
+	AdSlot      string          `json:"adSlot"`
+	WrapExt     json.RawMessage `json:"wrapper"`
 }
 
 func PrepareLogMessage(tID, pubId, adUnitId, bidID, details string, args ...interface{}) string {
@@ -65,6 +66,8 @@ func (a *PubmaticAdapter) Call(ctx context.Context, req *pbs.PBSRequest, bidder 
 
 	adSlotFlag := false
 	pubId := ""
+	wrapExt := ""
+	wrapExtFlag := false
 	if len(bidder.AdUnits) > MAX_IMPRESSIONS_PUBMATIC {
 		glog.Warningf("[PUBMATIC] First %d impressions will be considered from request tid %s\n",
 			MAX_IMPRESSIONS_PUBMATIC, pbReq.ID)
@@ -89,6 +92,17 @@ func (a *PubmaticAdapter) Call(ctx context.Context, req *pbs.PBSRequest, bidder 
 			glog.Warningf(PrepareLogMessage(pbReq.ID, params.PublisherId, unit.Code, unit.BidID,
 				fmt.Sprintf("Ignored bid: adSlot missing")))
 			continue
+		}
+
+		// Parse Wrapper Extension i.e. ProfileID and VersionID only once per request
+		if wrapExtFlag == false {
+			if len(string(params.WrapExt)) == 0 {
+				glog.Warningf(PrepareLogMessage(pbReq.ID, params.PublisherId, unit.Code, unit.BidID,
+					fmt.Sprintf("Optional Paramteter Wrapper Extension missing")))
+			} else {
+				wrapExt = string(params.WrapExt)
+				wrapExtFlag = true
+			}
 		}
 
 		adSlotStr := strings.TrimSpace(params.AdSlot)
@@ -144,6 +158,11 @@ func (a *PubmaticAdapter) Call(ctx context.Context, req *pbs.PBSRequest, bidder 
 
 	if !(adSlotFlag) {
 		return nil, errors.New("Incorrect adSlot / Publisher param")
+	}
+
+	if len(wrapExt) != 0 {
+		rawExt := fmt.Sprintf("{\"wrapper\": %s}", wrapExt)
+		pbReq.Ext = openrtb.RawJSON(rawExt)
 	}
 
 	reqJSON, err := json.Marshal(pbReq)
