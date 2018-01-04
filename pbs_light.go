@@ -81,6 +81,7 @@ var (
 	accountMetricsRWMutex sync.RWMutex
 
 	hostCookieSettings pbs.HostCookieSettings
+	userSyncDeps       pbs.UserSyncDeps
 )
 
 var exchanges map[string]adapters.Adapter
@@ -584,6 +585,16 @@ func Validate(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	return
 }
 
+func GetUIDSWrapper(w http.ResponseWriter, r *http.Request) {
+	var temp httprouter.Params
+	userSyncDeps.GetUIDs(w, r, temp)
+}
+
+func SetUIDSWrapper(w http.ResponseWriter, r *http.Request) {
+	var temp httprouter.Params
+	userSyncDeps.SetUID(w, r, temp)
+}
+
 func loadPostgresDataCache(cfg *config.Configuration) (cache.Cache, error) {
 	mem := sigar.Mem{}
 	mem.Get()
@@ -661,13 +672,17 @@ func main() {
 	}
 }
 */
-func InitPrebidServer() {
+func InitPrebidServer(hostURL string, at int64) {
 	rand.Seed(time.Now().UnixNano())
 	viper.SetConfigName("pbs")
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("/etc/config")
 
-	viper.SetDefault("external_url", "http://localhost:8000")
+	//Overwrite Auction type for all partenrs
+	adapters.SetAuctionTypeforAllPartners(at)
+
+	// HostURL is read  from config file
+	viper.SetDefault("external_url", hostURL)
 	viper.SetDefault("port", 8000)
 	viper.SetDefault("admin_port", 6060)
 	viper.SetDefault("default_timeout_ms", 250)
@@ -770,6 +785,22 @@ func serve(cfg *config.Configuration) error {
 		}
 	}
 	pbc.InitPrebidCache(cfg.CacheURL)
+
+	hostCookieSettings = pbs.HostCookieSettings{
+		Domain:     cfg.HostCookie.Domain,
+		Family:     cfg.HostCookie.Family,
+		CookieName: cfg.HostCookie.CookieName,
+		OptOutURL:  cfg.HostCookie.OptOutURL,
+		OptInURL:   cfg.HostCookie.OptInURL,
+	}
+
+	userSyncDeps = pbs.UserSyncDeps{
+		HostCookieSettings: &hostCookieSettings,
+		ExternalUrl:        cfg.ExternalURL,
+		RecaptchaSecret:    cfg.RecaptchaSecret,
+		Metrics:            metricsRegistry,
+	}
+
 	/*
 
 		stopSignals := make(chan os.Signal)

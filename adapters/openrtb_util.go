@@ -8,6 +8,12 @@ import (
 	"github.com/mxmCherry/openrtb"
 )
 
+var auctionType int64
+
+func SetAuctionTypeforAllPartners(at int64) {
+	auctionType = at
+}
+
 func min(x, y int) int {
 	if x < y {
 		return x
@@ -142,7 +148,7 @@ func makeOpenRTBGeneric(req *pbs.PBSRequest, bidder *pbs.PBSBidder, bidderFamily
 			Source: &openrtb.Source{
 				TID: req.Tid,
 			},
-			AT:   1,
+			AT:   auctionType,
 			TMax: req.TimeoutMillis,
 		}, nil
 	}
@@ -166,7 +172,7 @@ func makeOpenRTBGeneric(req *pbs.PBSRequest, bidder *pbs.PBSBidder, bidderFamily
 			FD:  1, // upstream, aka header
 			TID: req.Tid,
 		},
-		AT:   1,
+		AT:   auctionType,
 		TMax: req.TimeoutMillis,
 	}, nil
 }

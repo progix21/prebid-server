@@ -165,6 +165,8 @@ func (a *PubmaticAdapter) Call(ctx context.Context, req *pbs.PBSRequest, bidder 
 		pbReq.Ext = openrtb.RawJSON(rawExt)
 	}
 
+	// Overwittern auction type to second price
+	pbReq.AT = 2
 	reqJSON, err := json.Marshal(pbReq)
 
 	debug := &pbs.BidderDebug{
