@@ -162,6 +162,12 @@ type PBSRequest struct {
 	Start   time.Time
 }
 
+var maxTImeoutLimit int64
+
+func SetTimeLimitForAllPartners(maxTimeout int64) {
+	maxTImeoutLimit = maxTimeout
+}
+
 func ConfigGet(cache cache.Cache, id string) ([]Bids, error) {
 	conf, err := cache.Config().Get(id)
 	if err != nil {
@@ -216,7 +222,9 @@ func ParsePBSRequest(r *http.Request, cache cache.Cache, hostCookieSettings *Hos
 		return nil, fmt.Errorf("No ad units specified")
 	}
 
-	if pbsReq.TimeoutMillis == 0 || pbsReq.TimeoutMillis > 2000 {
+	// Updated to get Max Timeout limit from Config file
+	//if pbsReq.TimeoutMillis == 0 || pbsReq.TimeoutMillis > 2000 {
+	if pbsReq.TimeoutMillis == 0 || pbsReq.TimeoutMillis > maxTImeoutLimit {
 		pbsReq.TimeoutMillis = int64(viper.GetInt("default_timeout_ms"))
 	}
 

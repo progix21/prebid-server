@@ -672,19 +672,23 @@ func main() {
 	}
 }
 */
-func InitPrebidServer(hostURL string, at int64) {
+//TODO: Input arguments shall be passsed as strcuture instead of individual params
+func InitPrebidServer(hostURL string, at int64, maxTimeout int64) {
 	rand.Seed(time.Now().UnixNano())
 	viper.SetConfigName("pbs")
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("/etc/config")
 
-	//Overwrite Auction type for all partenrs
+	//Set Auction type for all partenrs from Config File
 	adapters.SetAuctionTypeforAllPartners(at)
+
+	//Set maximum Timeout limit
+	pbs.SetTimeLimitForAllPartners(maxTimeout)
 
 	// HostURL is read  from config file
 	viper.SetDefault("external_url", hostURL)
-	viper.SetDefault("port", 8000)
-	viper.SetDefault("admin_port", 6060)
+	//viper.SetDefault("port", 8000)
+	//viper.SetDefault("admin_port", 6060)
 	viper.SetDefault("default_timeout_ms", 250)
 	viper.SetDefault("datacache.type", "dummy")
 	// no metrics configured by default (metrics{host|database|username|password})
