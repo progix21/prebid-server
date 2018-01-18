@@ -222,7 +222,6 @@ func CookieSync(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 func Auction(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
-	glog.Info("Called Prebid Server Library Auction Method ")
 	w.Header().Add("Content-Type", "application/json")
 
 	mRequestMeter.Mark(1)
@@ -300,7 +299,6 @@ func Auction(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 			}
 			sentBids++
 			go func(bidder *pbs.PBSBidder) {
-				glog.Info("Called Server Side Adapter for Bidder  ", bidder.BidderCode)
 				start := time.Now()
 				bid_list, err := ex.Call(ctx, pbs_req, bidder)
 				bidder.ResponseTime = int(time.Since(start) / time.Millisecond)
@@ -651,7 +649,7 @@ func init() {
 	viper.SetDefault("datacache.type", "dummy")
 	// no metrics configured by default (metrics{host|database|username|password})
 
-	viper.SetDefault("adapters.pubmatic.endpoint", "http://openbid.pubmatic.com/translator?source=prebid-server")
+	viper.SetDefault("adapters.pubmatic.endpoint", "http://hbopenbid.pubmatic.com/translator?source=prebid-server")
 	viper.SetDefault("adapters.rubicon.endpoint", "http://staged-by.rubiconproject.com/a/api/exchange.json")
 	viper.SetDefault("adapters.rubicon.usersync_url", "https://pixel.rubiconproject.com/exchange/sync.php?p=prebid")
 	viper.SetDefault("adapters.pulsepoint.endpoint", "http://bid.contextweb.com/header/s/ortb/prebid-s2s")
@@ -693,7 +691,7 @@ func InitPrebidServer(hostURL string, at int64, maxTimeout int64) {
 	viper.SetDefault("datacache.type", "dummy")
 	// no metrics configured by default (metrics{host|database|username|password})
 
-	viper.SetDefault("adapters.pubmatic.endpoint", "http://openbid.pubmatic.com/translator?source=prebid-server")
+	viper.SetDefault("adapters.pubmatic.endpoint", "http://hbopenbid.pubmatic.com/translator?source=pubmatic-server")
 	viper.SetDefault("adapters.rubicon.endpoint", "http://staged-by.rubiconproject.com/a/api/exchange.json")
 	viper.SetDefault("adapters.rubicon.usersync_url", "https://pixel.rubiconproject.com/exchange/sync.php?p=prebid")
 	viper.SetDefault("adapters.pulsepoint.endpoint", "http://bid.contextweb.com/header/s/ortb/prebid-s2s")
