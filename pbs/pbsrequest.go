@@ -312,11 +312,11 @@ func ParsePBSRequest(r *http.Request, cache cache.Cache, hostCookieSettings *Hos
 				continue
 			}
 		}
-
-		if glog.V(2) {
-			glog.Infof("Ad unit %s has %d bidders for %d sizes", unit.Code, len(bidders), len(unit.Sizes))
-		}
-
+		/*
+			if glog.V(3) {
+				glog.Infof("Tid: %v Impression ID %s has %d bidders for %d sizes", pbsReq.Tid, unit.Code, len(bidders), len(unit.Sizes))
+			}
+		*/
 		mtypes := ParseMediaTypes(unit.MediaTypes)
 		for _, b := range bidders {
 			var bidder *PBSBidder

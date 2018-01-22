@@ -65,7 +65,7 @@ func (a *PubmaticAdapter) Call(ctx context.Context, req *pbs.PBSRequest, bidder 
 	}
 
 	adSlotFlag := false
-	pubId := ""
+	//pubId := ""
 	wrapExt := ""
 	wrapExtFlag := false
 	if len(bidder.AdUnits) > MAX_IMPRESSIONS_PUBMATIC {
@@ -87,7 +87,7 @@ func (a *PubmaticAdapter) Call(ctx context.Context, req *pbs.PBSRequest, bidder 
 				fmt.Sprintf("Ignored bid: Publisher Id missing")))
 			continue
 		}
-		pubId = params.PublisherId
+		//pubId = params.PublisherId
 		if params.AdSlot == "" {
 			glog.Warningf(PrepareLogMessage(pbReq.ID, params.PublisherId, unit.Code, unit.BidID,
 				fmt.Sprintf("Ignored bid: adSlot missing")))
@@ -254,10 +254,12 @@ func (a *PubmaticAdapter) Call(ctx context.Context, req *pbs.PBSRequest, bidder 
 			}
 
 			bids = append(bids, &pbid)
-			if glog.V(2) {
-				glog.Infof("[PUBMATIC] Returned Bid for PubID [%s] AdUnit [%s] BidID [%s] Size [%dx%d] Price [%f] \n",
-					pubId, pbid.AdUnitCode, pbid.BidID, pbid.Width, pbid.Height, pbid.Price)
-			}
+			/*
+				if glog.V(3) {
+					glog.Infof("[PUBMATIC] Returned Bid for PubID [%s] AdUnit [%s] BidID [%s] Size [%dx%d] Price [%f] \n",
+						pubId, pbid.AdUnitCode, pbid.BidID, pbid.Width, pbid.Height, pbid.Price)
+				}
+			*/
 		}
 	}
 
