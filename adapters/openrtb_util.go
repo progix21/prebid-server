@@ -1,7 +1,7 @@
 package adapters
 
 import (
-	"github.com/prebid/prebid-server/pbs"
+	"github.com/PubMatic-OpenWrap/prebid-server/pbs"
 
 	"errors"
 
@@ -78,6 +78,7 @@ func makeVideo(unit pbs.PBSAdUnit) *openrtb.Video {
 // The only exception is the Imp property, whose objects will be created new by this method and can be mutated freely.
 func MakeOpenRTBGeneric(req *pbs.PBSRequest, bidder *pbs.PBSBidder, bidderFamily string, allowedMediatypes []pbs.MediaType, singleMediaTypeImp bool) (openrtb.BidRequest, error) {
 	imps := make([]openrtb.Imp, 0, len(bidder.AdUnits)*len(allowedMediatypes))
+
 	for _, unit := range bidder.AdUnits {
 		if len(unit.Sizes) <= 0 {
 			continue

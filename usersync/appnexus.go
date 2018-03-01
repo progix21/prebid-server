@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/prebid/prebid-server/pbs"
+	"github.com/PubMatic-OpenWrap/prebid-server/pbs"
 )
 
 func NewAppnexusSyncer(externalURL string) Usersyncer {

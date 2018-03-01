@@ -6,8 +6,8 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/PubMatic-OpenWrap/prebid-server/adapters"
 	"github.com/mxmCherry/openrtb"
-	"github.com/prebid/prebid-server/adapters"
 	"github.com/yudai/gojsondiff"
 	"github.com/yudai/gojsondiff/formatter"
 )

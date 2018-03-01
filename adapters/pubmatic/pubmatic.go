@@ -11,10 +11,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/PubMatic-OpenWrap/prebid-server/adapters"
+	"github.com/PubMatic-OpenWrap/prebid-server/openrtb_ext"
+	"github.com/PubMatic-OpenWrap/prebid-server/pbs"
 	"github.com/golang/glog"
 	"github.com/mxmCherry/openrtb"
-	"github.com/prebid/prebid-server/adapters"
-	"github.com/prebid/prebid-server/pbs"
 	"golang.org/x/net/context/ctxhttp"
 )
 
@@ -163,22 +164,26 @@ func (a *PubmaticAdapter) Call(ctx context.Context, req *pbs.PBSRequest, bidder 
 
 	pbResp, err := ctxhttp.Do(ctx, a.http.Client, httpReq)
 	if err != nil {
+
 		return nil, err
 	}
 
 	debug.StatusCode = pbResp.StatusCode
 
 	if pbResp.StatusCode == 204 {
+
 		return nil, nil
 	}
 
 	if pbResp.StatusCode != 200 {
+
 		return nil, fmt.Errorf("HTTP status: %d", pbResp.StatusCode)
 	}
 
 	defer pbResp.Body.Close()
 	body, err := ioutil.ReadAll(pbResp.Body)
 	if err != nil {
+
 		return nil, err
 	}
 
@@ -216,6 +221,9 @@ func (a *PubmaticAdapter) Call(ctx context.Context, req *pbs.PBSRequest, bidder 
 				DealId:      bid.DealID,
 			}
 
+			//mediaType := getMediaTypeForImp(bid.ImpID, pbReq.Imp)
+			//pbid.CreativeMediaType = string(mediaType)
+			pbid.CreativeMediaType = string(openrtb_ext.BidTypeBanner)
 			bids = append(bids, &pbid)
 			if glog.V(2) {
 				glog.Infof("[PUBMATIC] Returned Bid for PubID [%s] AdUnit [%s] BidID [%s] Size [%dx%d] Price [%f] \n",
@@ -227,6 +235,23 @@ func (a *PubmaticAdapter) Call(ctx context.Context, req *pbs.PBSRequest, bidder 
 	return bids, nil
 }
 
+// getMediaTypeForImp figures out which media type this bid is for.
+//
+// This is only safe for multi-type impressions because the AN server prioritizes video over banner,
+// and we duplicate that logic here. A ticket exists to return the media type in the bid response,
+// at which point we can delete this.
+func getMediaTypeForImp(impId string, imps []openrtb.Imp) openrtb_ext.BidType {
+	mediaType := openrtb_ext.BidTypeBanner
+	for _, imp := range imps {
+		if imp.ID == impId {
+			if imp.Video != nil {
+				mediaType = openrtb_ext.BidTypeVideo
+			}
+			return mediaType
+		}
+	}
+	return mediaType
+}
 func NewPubmaticAdapter(config *adapters.HTTPAdapterConfig, uri string) *PubmaticAdapter {
 	a := adapters.NewHTTPAdapter(config)
 

@@ -15,8 +15,6 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/mxmCherry/openrtb"
-	"github.com/prebid/prebid-server/cache"
-	"github.com/prebid/prebid-server/prebid"
 )
 
 const MAX_BIDDERS = 8

@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"github.com/prebid/prebid-server/openrtb_ext"
+	"github.com/PubMatic-OpenWrap/prebid-server/openrtb_ext"
 )
 
 type Domain struct {

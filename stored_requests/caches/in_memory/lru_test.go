@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/prebid/prebid-server/config"
+	"github.com/PubMatic-OpenWrap/prebid-server/config"
 	"testing"
 )
 

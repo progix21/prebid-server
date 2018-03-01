@@ -3,17 +3,17 @@ package exchange
 import (
 	"net/http"
 
-	"github.com/prebid/prebid-server/adapters"
-	"github.com/prebid/prebid-server/adapters/appnexus"
-	"github.com/prebid/prebid-server/adapters/audienceNetwork"
-	"github.com/prebid/prebid-server/adapters/conversant"
-	"github.com/prebid/prebid-server/adapters/indexExchange"
-	"github.com/prebid/prebid-server/adapters/lifestreet"
-	"github.com/prebid/prebid-server/adapters/pubmatic"
-	"github.com/prebid/prebid-server/adapters/pulsepoint"
-	"github.com/prebid/prebid-server/adapters/rubicon"
-	"github.com/prebid/prebid-server/config"
-	"github.com/prebid/prebid-server/openrtb_ext"
+	"github.com/PubMatic-OpenWrap/prebid-server/adapters"
+	"github.com/PubMatic-OpenWrap/prebid-server/adapters/appnexus"
+	"github.com/PubMatic-OpenWrap/prebid-server/adapters/audienceNetwork"
+	"github.com/PubMatic-OpenWrap/prebid-server/adapters/conversant"
+	"github.com/PubMatic-OpenWrap/prebid-server/adapters/indexExchange"
+	"github.com/PubMatic-OpenWrap/prebid-server/adapters/lifestreet"
+	"github.com/PubMatic-OpenWrap/prebid-server/adapters/pubmatic"
+	"github.com/PubMatic-OpenWrap/prebid-server/adapters/pulsepoint"
+	"github.com/PubMatic-OpenWrap/prebid-server/adapters/rubicon"
+	"github.com/PubMatic-OpenWrap/prebid-server/config"
+	"github.com/PubMatic-OpenWrap/prebid-server/openrtb_ext"
 )
 
 // The newAdapterMap function is segregated to its own file to make it a simple and clean location for each Adapter

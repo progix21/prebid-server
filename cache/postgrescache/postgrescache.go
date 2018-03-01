@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"encoding/gob"
 
+	"github.com/PubMatic-OpenWrap/prebid-server/cache"
+	"github.com/PubMatic-OpenWrap/prebid-server/openrtb_ext"
 	"github.com/coocood/freecache"
-	"github.com/prebid/prebid-server/cache"
-	"github.com/prebid/prebid-server/openrtb_ext"
 )
 
 type CacheConfig struct {

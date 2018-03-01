@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"strconv"
 
-	"github.com/prebid/prebid-server/config"
+	"github.com/PubMatic-OpenWrap/prebid-server/config"
 )
 
 func NewPostgresDb(cfg *config.PostgresConfig) (*sql.DB, error) {

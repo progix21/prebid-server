@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"math/rand"
 
+	"github.com/PubMatic-OpenWrap/prebid-server/openrtb_ext"
+	"github.com/PubMatic-OpenWrap/prebid-server/pbsmetrics"
 	"github.com/buger/jsonparser"
 	"github.com/mxmCherry/openrtb"
-	"github.com/prebid/prebid-server/openrtb_ext"
-	"github.com/prebid/prebid-server/pbsmetrics"
 )
 
 // cleanOpenRTBRequests splits the input request into requests which are sanitized for each bidder. Intended behavior is:
@@ -55,8 +55,10 @@ func splitBidRequest(req *openrtb.BidRequest, impsByBidder map[string][]openrtb.
 //
 // The goal here is so that Bidders only get Imps and Imp.Ext values which are intended for them.
 func splitImps(imps []openrtb.Imp) (map[string][]openrtb.Imp, []error) {
+	fmt.Println("Inside  splitImps")
 	impExts, err := parseImpExts(imps)
 	if err != nil {
+		fmt.Println("************ GOT ERROR ************* ")
 		return nil, []error{err}
 	}
 

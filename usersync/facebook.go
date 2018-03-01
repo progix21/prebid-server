@@ -1,7 +1,7 @@
 package usersync
 
 import (
-	"github.com/prebid/prebid-server/pbs"
+	"github.com/PubMatic-OpenWrap/prebid-server/pbs"
 )
 
 func NewFacebookSyncer(syncUrl string) Usersyncer {

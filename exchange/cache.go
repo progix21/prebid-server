@@ -3,11 +3,11 @@ package exchange
 import (
 	"context"
 	"encoding/json"
+	"github.com/PubMatic-OpenWrap/prebid-server/openrtb_ext"
+	"github.com/PubMatic-OpenWrap/prebid-server/pbs/buckets"
+	"github.com/PubMatic-OpenWrap/prebid-server/prebid_cache_client"
 	"github.com/golang/glog"
 	"github.com/mxmCherry/openrtb"
-	"github.com/prebid/prebid-server/openrtb_ext"
-	"github.com/prebid/prebid-server/pbs/buckets"
-	"github.com/prebid/prebid-server/prebid_cache_client"
 	"strings"
 )
 

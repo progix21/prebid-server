@@ -3,8 +3,8 @@ package pbs
 import (
 	"encoding/base64"
 	"encoding/json"
-	"github.com/prebid/prebid-server/config"
-	"github.com/prebid/prebid-server/openrtb_ext"
+	"github.com/PubMatic-OpenWrap/prebid-server/config"
+	"github.com/PubMatic-OpenWrap/prebid-server/openrtb_ext"
 	"net/http"
 	"net/http/httptest"
 	"testing"

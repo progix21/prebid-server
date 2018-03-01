@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/PubMatic-OpenWrap/prebid-server/openrtb_ext"
 	"github.com/evanphx/json-patch"
 	"github.com/mxmCherry/openrtb"
-	"github.com/prebid/prebid-server/openrtb_ext"
 )
 
 func TestBidSerialization(t *testing.T) {

@@ -1,4 +1,4 @@
-package main
+package prebidServer
 
 import (
 	"bytes"
@@ -14,11 +14,11 @@ import (
 	"context"
 	"io/ioutil"
 
-	"github.com/prebid/prebid-server/cache/dummycache"
-	"github.com/prebid/prebid-server/config"
-	"github.com/prebid/prebid-server/openrtb_ext"
-	"github.com/prebid/prebid-server/pbs"
-	usersyncers "github.com/prebid/prebid-server/usersync"
+	"github.com/PubMatic-OpenWrap/prebid-server/cache/dummycache"
+	"github.com/PubMatic-OpenWrap/prebid-server/config"
+	"github.com/PubMatic-OpenWrap/prebid-server/openrtb_ext"
+	"github.com/PubMatic-OpenWrap/prebid-server/pbs"
+	usersyncers "github.com/PubMatic-OpenWrap/prebid-server/usersync"
 )
 
 const adapterDirectory = "adapters"

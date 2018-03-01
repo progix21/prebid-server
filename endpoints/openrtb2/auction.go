@@ -12,19 +12,19 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/PubMatic-OpenWrap/prebid-server/config"
+	"github.com/PubMatic-OpenWrap/prebid-server/exchange"
+	"github.com/PubMatic-OpenWrap/prebid-server/openrtb_ext"
+	"github.com/PubMatic-OpenWrap/prebid-server/pbs"
+	"github.com/PubMatic-OpenWrap/prebid-server/pbsmetrics"
+	"github.com/PubMatic-OpenWrap/prebid-server/prebid"
+	"github.com/PubMatic-OpenWrap/prebid-server/stored_requests"
 	"github.com/buger/jsonparser"
 	"github.com/evanphx/json-patch"
 	"github.com/golang/glog"
 	"github.com/julienschmidt/httprouter"
 	"github.com/mssola/user_agent"
 	"github.com/mxmCherry/openrtb"
-	"github.com/prebid/prebid-server/config"
-	"github.com/prebid/prebid-server/exchange"
-	"github.com/prebid/prebid-server/openrtb_ext"
-	"github.com/prebid/prebid-server/pbs"
-	"github.com/prebid/prebid-server/pbsmetrics"
-	"github.com/prebid/prebid-server/prebid"
-	"github.com/prebid/prebid-server/stored_requests"
 	"github.com/rcrowley/go-metrics"
 	"golang.org/x/net/publicsuffix"
 )
@@ -46,6 +46,26 @@ type endpointDeps struct {
 	storedReqFetcher stored_requests.Fetcher
 	cfg              *config.Configuration
 	metrics          *pbsmetrics.Metrics
+}
+type EndpointDeps endpointDeps
+
+func OrtbAuctionEndpoint(ex exchange.Exchange, validator openrtb_ext.BidderParamValidator, requestsById stored_requests.Fetcher, cfg *config.Configuration, met *pbsmetrics.Metrics, w http.ResponseWriter, r *http.Request) error {
+
+	if ex == nil || validator == nil || cfg == nil {
+		return errors.New("OrtbAuctionEndpoint requires non-nil arguments.")
+	}
+
+	endpointDepsParams := &endpointDeps{
+		ex:               ex,
+		paramsValidator:  validator,
+		storedReqFetcher: requestsById,
+		cfg:              cfg,
+		metrics:          met,
+	}
+
+	endpointDepsParams.Auction(w, r, nil)
+	return nil
+
 }
 
 func (deps *endpointDeps) Auction(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

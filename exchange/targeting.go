@@ -2,9 +2,9 @@ package exchange
 
 import (
 	"encoding/json"
+	"github.com/PubMatic-OpenWrap/prebid-server/openrtb_ext"
+	"github.com/PubMatic-OpenWrap/prebid-server/pbs/buckets"
 	"github.com/mxmCherry/openrtb"
-	"github.com/prebid/prebid-server/openrtb_ext"
-	"github.com/prebid/prebid-server/pbs/buckets"
 	"strconv"
 )
 

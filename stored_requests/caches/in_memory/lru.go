@@ -3,10 +3,10 @@ package in_memory
 import (
 	"context"
 	"encoding/json"
+	"github.com/PubMatic-OpenWrap/prebid-server/config"
+	"github.com/PubMatic-OpenWrap/prebid-server/stored_requests"
 	"github.com/coocood/freecache"
 	"github.com/golang/glog"
-	"github.com/prebid/prebid-server/config"
-	"github.com/prebid/prebid-server/stored_requests"
 )
 
 // NewLRUCache returns an in-memory Cache which evicts items if:

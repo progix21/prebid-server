@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/prebid/prebid-server/config"
+	"github.com/PubMatic-OpenWrap/prebid-server/config"
 )
 
 // TestPostgresDSNCreation makes sure we turn the config into a string expected by the Postgres driver library.

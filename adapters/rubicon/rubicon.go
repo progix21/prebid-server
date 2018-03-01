@@ -10,13 +10,13 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/prebid/prebid-server/pbs"
+	"github.com/PubMatic-OpenWrap/prebid-server/pbs"
 
 	"golang.org/x/net/context/ctxhttp"
 
+	"github.com/PubMatic-OpenWrap/prebid-server/adapters"
+	"github.com/PubMatic-OpenWrap/prebid-server/openrtb_ext"
 	"github.com/mxmCherry/openrtb"
-	"github.com/prebid/prebid-server/adapters"
-	"github.com/prebid/prebid-server/openrtb_ext"
 )
 
 type RubiconAdapter struct {

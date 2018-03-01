@@ -1,8 +1,8 @@
 package adapters
 
 import (
+	"github.com/PubMatic-OpenWrap/prebid-server/pbs"
 	"github.com/mxmCherry/openrtb"
-	"github.com/prebid/prebid-server/pbs"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

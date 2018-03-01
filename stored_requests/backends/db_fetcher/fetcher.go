@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/PubMatic-OpenWrap/prebid-server/stored_requests"
 	"github.com/golang/glog"
-	"github.com/prebid/prebid-server/stored_requests"
 )
 
 func NewFetcher(db *sql.DB, queryMaker func(int) (string, error)) stored_requests.Fetcher {
