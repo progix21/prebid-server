@@ -247,7 +247,7 @@ func (deps *cookieSyncDeps) CookieSync(w http.ResponseWriter, r *http.Request, _
 	// If at the end (After possibly reading stored bidder lists) there still are no bidders,
 	// and "bidders" is not found in the JSON, sync all bidders
 	if len(csReq.Bidders) == 0 && biddersOmitted {
-		for bidder, _ := range deps.syncers {
+		for bidder := range deps.syncers {
 			csReq.Bidders = append(csReq.Bidders, string(bidder))
 		}
 	}
@@ -455,6 +455,10 @@ func (deps *auctionDeps) auction(w http.ResponseWriter, r *http.Request, _ httpr
 		}
 	}
 
+	if pbs_req.CacheMarkup == 2 {
+		cacheVideoOnly(pbs_resp.Bids, ctx, w, deps)
+	}
+
 	if pbs_req.SortBids == 1 {
 		sortBidsAddKeywordsMobile(pbs_resp.Bids, pbs_req, account.PriceGranularity)
 	}
@@ -467,6 +471,35 @@ func (deps *auctionDeps) auction(w http.ResponseWriter, r *http.Request, _ httpr
 	enc.SetEscapeHTML(false)
 	enc.Encode(pbs_resp)
 	mRequestTimer.UpdateSince(pbs_req.Start)
+}
+
+// cache video bids only for Web
+func cacheVideoOnly(bids pbs.PBSBidSlice, ctx context.Context, w http.ResponseWriter, deps *auctionDeps) {
+	var cobjs []*pbc.CacheObject
+	for _, bid := range bids {
+		if bid.CreativeMediaType == "video" {
+			cobjs = append(cobjs, &pbc.CacheObject{
+				Value:   bid.Adm,
+				IsVideo: true,
+			})
+		}
+	}
+	err := pbc.Put(ctx, cobjs)
+	if err != nil {
+		writeAuctionError(w, "Prebid cache failed", err)
+		mErrorMeter.Mark(1)
+		return
+	}
+	videoIndex := 0
+	for _, bid := range bids {
+		if bid.CreativeMediaType == "video" {
+			bid.CacheID = cobjs[videoIndex].UUID
+			bid.CacheURL = deps.cfg.GetCachedAssetURL(bid.CacheID)
+			bid.NURL = ""
+			bid.Adm = ""
+			videoIndex++
+		}
+	}
 }
 
 // checkForValidBidSize goes through list of bids & find those which are banner mediaType and with height or width not defined
@@ -739,6 +772,11 @@ func init() {
 	viper.SetDefault("adapters.conversant.endpoint", "http://media.msg.dotomi.com/s2s/header/24")
 	viper.SetDefault("adapters.conversant.usersync_url", "http://prebid-match.dotomi.com/prebid/match?rurl=")
 	viper.SetDefault("host_cookie.ttl_days", 90)
+
+	// Set environment variable support:
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.SetEnvPrefix("PBS")
+	viper.AutomaticEnv()
 	viper.ReadInConfig()
 
 	flag.Parse() // read glog settings from cmd line
