@@ -37,9 +37,21 @@ func (a *PubmaticAdapter) SkipNoCookies() bool {
 	return false
 }
 
+// Below is bidder specific parameters for pubmatic adaptor,
+// PublisherId and adSlot are mandatory parameters, others are optional parameters
+// PmZoneid, Kadfloor are bid specific parameters,
+// other parameters Lat,Lon, Yob, Kadpageurl, Gender, Yob, WrapExt needs to sent once per bid  request
 type pubmaticParams struct {
-	PublisherId string `json:"publisherId"`
-	AdSlot      string `json:"adSlot"`
+	PublisherId string          `json:"publisherId"`
+	AdSlot      string          `json:"adSlot"`
+	Lat         float64         `json:"lat"`
+	Lon         float64         `json:"Lon"`
+	Yob         int             `json:"yob"`
+	Kadpageurl  string          `json:"kadpageurl"`
+	Gender      string          `json:"gender"`
+	Kadfloor    float64         `json:"kadfloor"`
+	WrapExt     json.RawMessage `json:"wrapper"`
+	PmZoneid    string          `json:"pmzoneid"`
 }
 
 func PrepareLogMessage(tID, pubId, adUnitId, bidID, details string, args ...interface{}) string {
@@ -58,6 +70,12 @@ func (a *PubmaticAdapter) Call(ctx context.Context, req *pbs.PBSRequest, bidder 
 
 	adSlotFlag := false
 	pubId := ""
+	wrapExt := ""
+	lat := 0.0
+	lon := 0.0
+	yob := 0
+	kadPageURL := ""
+	gender := ""
 	if len(bidder.AdUnits) > MAX_IMPRESSIONS_PUBMATIC {
 		glog.Warningf("[PUBMATIC] First %d impressions will be considered from request tid %s\n",
 			MAX_IMPRESSIONS_PUBMATIC, pbReq.ID)
@@ -84,6 +102,31 @@ func (a *PubmaticAdapter) Call(ctx context.Context, req *pbs.PBSRequest, bidder 
 			continue
 		}
 
+		// Parse Wrapper Extension i.e. ProfileID and VersionID only once per request
+		if wrapExt == "" && len(string(params.WrapExt)) != 0 {
+			wrapExt = string(params.WrapExt)
+		}
+
+		if params.Lat != 0.0 && lat == 0.0 {
+			lat = params.Lat
+		}
+
+		if params.Lon != 0.0 && lon == 0.0 {
+			lon = params.Lon
+		}
+
+		if params.Yob != 0 && yob == 0 {
+			yob = params.Yob
+		}
+
+		if len(params.Gender) != 0 && gender == "" {
+			gender = params.Gender
+		}
+
+		if len(params.Kadpageurl) != 0 && kadPageURL == "" {
+			kadPageURL = params.Kadpageurl
+		}
+
 		adSlotStr := strings.TrimSpace(params.AdSlot)
 		adSlot := strings.Split(adSlotStr, "@")
 		if len(adSlot) == 2 && adSlot[0] != "" && adSlot[1] != "" {
@@ -92,7 +135,6 @@ func (a *PubmaticAdapter) Call(ctx context.Context, req *pbs.PBSRequest, bidder 
 				break
 			}
 			if pbReq.Imp[i].Banner != nil {
-				pbReq.Imp[i].Banner.Format = nil // pubmatic doesn't support
 				adSize := strings.Split(strings.ToLower(strings.TrimSpace(adSlot[1])), "x")
 				if len(adSize) == 2 {
 					width, err := strconv.Atoi(strings.TrimSpace(adSize[0]))
@@ -113,6 +155,18 @@ func (a *PubmaticAdapter) Call(ctx context.Context, req *pbs.PBSRequest, bidder 
 					pbReq.Imp[i].TagID = strings.TrimSpace(adSlot[0])
 					pbReq.Imp[i].Banner.H = openrtb.Uint64Ptr(uint64(height))
 					pbReq.Imp[i].Banner.W = openrtb.Uint64Ptr(uint64(width))
+
+					if params.Kadfloor != 0.0 {
+						pbReq.Imp[i].BidFloor = params.Kadfloor
+					}
+
+					impExtJsonStr := ""
+					if len(params.PmZoneid) != 0 {
+						impExtJsonStr = fmt.Sprintf("\"pmZoneId\": \"%s\"", params.PmZoneid)
+						impExtJsonStr = "{" + impExtJsonStr + "}"
+						pbReq.Imp[i].Ext = openrtb.RawJSON([]byte(impExtJsonStr))
+					}
+
 					adSlotFlag = true
 				} else {
 					glog.Warningf(PrepareLogMessage(pbReq.ID, params.PublisherId, unit.Code, unit.BidID,
@@ -130,6 +184,9 @@ func (a *PubmaticAdapter) Call(ctx context.Context, req *pbs.PBSRequest, bidder 
 			siteCopy := *pbReq.Site
 			siteCopy.Publisher = &openrtb.Publisher{ID: params.PublisherId, Domain: req.Domain}
 			pbReq.Site = &siteCopy
+			if kadPageURL != "" {
+				pbReq.Site.Page = kadPageURL
+			}
 		}
 		if pbReq.App != nil {
 			appCopy := *pbReq.App
@@ -140,6 +197,31 @@ func (a *PubmaticAdapter) Call(ctx context.Context, req *pbs.PBSRequest, bidder 
 
 	if !(adSlotFlag) {
 		return nil, errors.New("Incorrect adSlot / Publisher param")
+	}
+
+	if lat != 0.0 || lon != 0.0 {
+		geo := new(openrtb.Geo)
+		geo.Lat = lat
+		geo.Lon = lon
+		if pbReq.User == nil {
+			pbReq.User = new(openrtb.User)
+		}
+		pbReq.User.Geo = geo
+	}
+
+	if gender != "" {
+		pbReq.User.Gender = gender
+	}
+
+	if yob != 0 {
+		pbReq.User.Yob = int64(yob)
+	}
+
+	if wrapExt != "" {
+		rawExt := fmt.Sprintf("{\"wrapper\": %s}", wrapExt)
+		pbReq.Ext = openrtb.RawJSON(rawExt)
+	} else {
+		glog.Warning("Wrapper Extension not present in request")
 	}
 
 	reqJSON, err := json.Marshal(pbReq)
@@ -236,12 +318,15 @@ func (a *PubmaticAdapter) MakeRequests(request *openrtb.BidRequest) ([]*adapters
 
 	var err error
 	wrapExt := ""
-	dctrExt := ""
 	pubID := ""
-	dctrExtStr := ""
-	wrapExtFlag := false
+	lat := 0.0
+	lon := 0.0
+	yob := 0
+	kadpageUrl := ""
+	gender := ""
+
 	for i := 0; i < len(request.Imp); i++ {
-		err = parseImpressionObject(&request.Imp[i], &wrapExtFlag, &wrapExt, &dctrExt, &pubID)
+		err = parseImpressionObject(&request.Imp[i], &wrapExt, &pubID, &lat, &lon, &yob, &kadpageUrl, &gender)
 
 		// If the parsing is failed, remove imp and add the error.
 		if err != nil {
@@ -251,30 +336,47 @@ func (a *PubmaticAdapter) MakeRequests(request *openrtb.BidRequest) ([]*adapters
 		}
 	}
 
-	if wrapExtFlag == true {
+	if wrapExt != "" {
 		rawExt := fmt.Sprintf("{\"wrapper\": %s}", wrapExt)
 		request.Ext = openrtb.RawJSON(rawExt)
-
-		dctrExtStr = dctrExt
-
+	} else {
+		glog.Warning("Wrapper Extension not present in request")
 	}
 
 	if request.Site != nil {
-		request.Site.Ext = openrtb.RawJSON(dctrExtStr)
-
 		if request.Site.Publisher != nil {
 			request.Site.Publisher.ID = pubID
 		} else {
 			request.Site.Publisher = &openrtb.Publisher{ID: pubID}
 		}
-	} else {
-		request.App.Ext = openrtb.RawJSON(dctrExtStr)
+		if kadpageUrl != "" {
+			request.Site.Page = kadpageUrl
+		}
 
+	} else {
 		if request.App.Publisher != nil {
 			request.App.Publisher.ID = pubID
 		} else {
 			request.App.Publisher = &openrtb.Publisher{ID: pubID}
 		}
+	}
+
+	if lat != 0.0 || lon != 0.0 {
+		geo := new(openrtb.Geo)
+		geo.Lat = lat
+		geo.Lon = lon
+		if request.User == nil {
+			request.User = new(openrtb.User)
+		}
+		request.User.Geo = geo
+	}
+
+	if gender != "" {
+		request.User.Gender = gender
+	}
+
+	if yob != 0 {
+		request.User.Yob = int64(yob)
 	}
 
 	thisUri := pmuri
@@ -302,7 +404,8 @@ func (a *PubmaticAdapter) MakeRequests(request *openrtb.BidRequest) ([]*adapters
 }
 
 // parseImpressionObject parase  the imp to get it ready to send to pubmatic
-func parseImpressionObject(imp *openrtb.Imp, wrapExtFlag *bool, wrapExt *string, dctrExt *string, pubID *string) error {
+func parseImpressionObject(imp *openrtb.Imp, wrapExt *string, pubID *string,
+	lat *float64, lon *float64, yob *int, kadPageURL *string, gender *string) error {
 	// PubMatic supports native, banner and video impressions.
 	if imp.Audio != nil {
 		return fmt.Errorf("PubMatic doesn't support audio. Ignoring ImpID = %s", imp.ID)
@@ -327,11 +430,32 @@ func parseImpressionObject(imp *openrtb.Imp, wrapExtFlag *bool, wrapExt *string,
 	}
 
 	// Parse Wrapper Extension i.e. ProfileID and VersionID only once per request
-	if *wrapExtFlag == false && (len(string(pubmaticExt.WrapExt)) != 0 ||
-		len(string(pubmaticExt.Dctr)) != 0) {
+	if *wrapExt == "" && len(string(pubmaticExt.WrapExt)) != 0 {
 		*wrapExt = string(pubmaticExt.WrapExt)
-		*dctrExt = string(pubmaticExt.Dctr)
-		*wrapExtFlag = true
+	}
+
+	if *lat == 0.0 && pubmaticExt.Lat != 0.0 {
+		*lat = pubmaticExt.Lat
+	}
+
+	if *lon == 0.0 && pubmaticExt.Lon != 0.0 {
+		*lon = pubmaticExt.Lon
+	}
+
+	if *yob == 0 && pubmaticExt.Yob != 0 {
+		*yob = pubmaticExt.Yob
+	}
+
+	if *kadPageURL == "" && len(pubmaticExt.Kadpageurl) != 0 {
+		*kadPageURL = pubmaticExt.Kadpageurl
+	}
+
+	if *gender == "" && len(pubmaticExt.Gender) != 0 {
+		*gender = pubmaticExt.Gender
+	}
+
+	if pubmaticExt.Kadfloor != 0.0 {
+		imp.BidFloor = pubmaticExt.Kadfloor
 	}
 
 	adSlotStr := strings.TrimSpace(pubmaticExt.AdSlot)
@@ -368,9 +492,10 @@ func parseImpressionObject(imp *openrtb.Imp, wrapExtFlag *bool, wrapExt *string,
 	}
 
 	keyValStr := makeImpressionExt(pubmaticExt.Keywords)
-
 	if len(keyValStr) != 0 {
 		imp.Ext = openrtb.RawJSON([]byte(keyValStr))
+	} else {
+		imp.Ext = nil
 	}
 
 	return nil
@@ -401,8 +526,9 @@ func makeImpressionExt(keywords []*openrtb_ext.ImpExtPubmaticKeyVal) string {
 			kvStr = kvStr + "," + eachkvStr
 		}
 	}
-	kvStr = "{" + kvStr + "}"
-
+	if len(kvStr) != 0 {
+		kvStr = "{" + kvStr + "}"
+	}
 	return kvStr
 }
 

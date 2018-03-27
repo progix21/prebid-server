@@ -298,7 +298,7 @@ func TestPubmaticInvalidInputParameters(t *testing.T) {
 
 }
 
-func TestPubmaticBasicResponse(t *testing.T) {
+func TestPubmaticBasicResponse_MandatoryParams(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(DummyPubMaticServer))
 	defer server.Close()
@@ -333,7 +333,41 @@ func TestPubmaticBasicResponse(t *testing.T) {
 		t.Fatalf("Should have received one bid")
 	}
 }
+func TestPubmaticBasicResponse_AllParams(t *testing.T) {
 
+	server := httptest.NewServer(http.HandlerFunc(DummyPubMaticServer))
+	defer server.Close()
+
+	conf := *adapters.DefaultHTTPAdapterConfig
+	an := NewPubmaticAdapter(&conf, server.URL)
+	ctx := context.Background()
+	pbReq := pbs.PBSRequest{}
+	pbBidder := pbs.PBSBidder{
+		BidderCode: "bannerCode",
+		AdUnits: []pbs.PBSAdUnit{
+			{
+				Code:       "unitCode",
+				BidID:      "bidid",
+				MediaTypes: []pbs.MediaType{pbs.MEDIA_TYPE_BANNER},
+				Sizes: []openrtb.Format{
+					{
+						W: 336,
+						H: 280,
+					},
+				},
+				Params: json.RawMessage("{\"publisherId\": \"640\", \"adSlot\": \"slot1@336x280\", \"kadpageurl\": \"www.test.com\", \"gender\": \"M\",\"lat\":40.1,\"lon\":50.2,\"yob\":1982,\"kadfloor\":0.5,\"pmzoneid\": \"Zone1,Zone2\",  \"wrapper\":{\"version\":2,\"profile\":595}}"),
+			},
+		},
+	}
+	pbReq.IsDebug = true
+	bids, err := an.Call(ctx, &pbReq, &pbBidder)
+	if err != nil {
+		t.Fatalf("Should not have gotten an error: %v", err)
+	}
+	if len(bids) != 1 {
+		t.Fatalf("Should have received one bid")
+	}
+}
 func TestPubmaticMultiImpressionResponse(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(DummyPubMaticServer))

@@ -38,7 +38,7 @@ func TestInvalidParamsForPubmatic(t *testing.T) {
 var validParams = []string{
 	`{"adSlot":"AdTag_Div1@728x90:0","publisherId":"5890"}`,
 	`{"adSlot":"AdTag_Div1@728x90:0","publisherId":"5890","wrapper":{"version":2,"profile":595}}`,
-	`{"adSlot":"AdTag_Div1@728x90:0","publisherId":"5890","wrapper":{"version":2,"profile":595},"keywords":[{"key":"Key_1","va    ls":["Val_1","Val_2"]},{"key":"Key_2","vals":["Val_1","Val_2"]}],"dctr":{"key_val":"key1 = v1,v11"}}`,
+	`{"adSlot":"AdTag_Div1@728x90:0","publisherId":"5890","wrapper":{"version":2,"profile":595},"keywords":[{"key":"Key_1","vals":["Val_1","Val_2"]},{"key":"Key_2","vals":["Val_1","Val_2"]}]}`,
 }
 
 var invalidParams = []string{
