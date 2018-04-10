@@ -36,9 +36,9 @@ func TestInvalidParamsForPubmatic(t *testing.T) {
 }
 
 var validParams = []string{
-	`{"adSlot":"AdTag_Div1@728x90:0","publisherId":"5890"}`,
-	`{"adSlot":"AdTag_Div1@728x90:0","publisherId":"5890","wrapper":{"version":2,"profile":595}}`,
-	`{"adSlot":"AdTag_Div1@728x90:0","publisherId":"5890","wrapper":{"version":2,"profile":595},"keywords":[{"key":"Key_1","vals":["Val_1","Val_2"]},{"key":"Key_2","vals":["Val_1","Val_2"]}]}`,
+	`{"adSlot":"AdTag_Div1@728x90:0","publisherId":"7890"}`,
+	`{"adSlot":"AdTag_Div1@728x90:0","publisherId":"7890","wrapper":{"version":2,"profile":595}}`,
+	`{"adSlot":"AdTag_Div1@728x90:0","publisherId":"7890","wrapper":{"version":2,"profile":595},"keywords":[{"key":"Key_1","vals":["Val_1","Val_2"]},{"key":"Key_2","vals":["Val_1","Val_2"]}]}`,
 }
 
 var invalidParams = []string{
@@ -46,5 +46,5 @@ var invalidParams = []string{
 	`null`,
 	`{}`,
 	`{"adSlot":"AdTag_Div1@728x90:0"}`,
-	`{"publisherId":"5890"}`,
+	`{"publisherId":"7890"}`,
 }

@@ -3,21 +3,19 @@ package openrtb_ext
 import "encoding/json"
 
 // ExtImpPubmatic defines the contract for bidrequest.imp[i].ext.pubmatic
-type ExtImpPubmatic struct {
-	AdSlot     string                  `json:"adSlot"`
-	PubID      string                  `json:"publisherId"`
-	Lat        float64                 `json:"lat"`
-	Lon        float64                 `json:"lon"`
-	Yob        int                     `json:"yob"`
-	Kadpageurl string                  `json:"kadpageurl"`
-	Gender     string                  `json:"gender"`
-	Kadfloor   float64                 `json:"kadfloor"`
-	WrapExt    json.RawMessage         `json:"wrapper"`
-	Keywords   []*ImpExtPubmaticKeyVal `json:"keywords"`
-}
+// PublisherId and adSlot are mandatory parameters, others are optional parameters
+// Keywords, Kadfloor are bid specific parameters,
+// other parameters Lat,Lon, Yob, Kadpageurl, Gender, Yob, WrapExt needs to sent once per bid  request
 
-// ImpExtPubmaticKeyVal defines the contract for bidrequest.imp[i].ext.pubmatic.keywords[i]
-type ImpExtPubmaticKeyVal struct {
-	Key    string   `json:"key,omitempty"`
-	Values []string `json:"vals,omitempty"`
+type ExtImpPubmatic struct {
+	PublisherId string            `json:"publisherId"`
+	AdSlot      string            `json:"adSlot"`
+	Lat         float64           `json:"lat,omitempty"`
+	Lon         float64           `json:"lon,omitempty"`
+	Yob         int               `json:"yob,omitempty"`
+	Kadpageurl  string            `json:"kadpageurl,omitempty"`
+	Gender      string            `json:"gender,omitempty"`
+	Kadfloor    float64           `json:"kadfloor,omitempty"`
+	WrapExt     json.RawMessage   `json:"wrapper,omitempty"`
+	Keywords    map[string]string `json:"keywords,omitempty"`
 }
