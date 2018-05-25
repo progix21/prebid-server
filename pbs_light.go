@@ -383,11 +383,11 @@ func Auction(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	if pbs_req.SortBids == 1 {
 		sortBidsAddKeywordsMobile(pbs_resp.Bids, pbs_req, account.PriceGranularity)
 	}
-
-	if glog.V(2) {
-		glog.Infof("Tid: %v Request for %d ad units on url %s by account %s got %d bids", pbs_req.Tid, len(pbs_req.AdUnits), pbs_req.Url, pbs_req.AccountID, len(pbs_resp.Bids))
-	}
-
+	/*
+		if glog.V(2) {
+			glog.Infof("Tid: %v Request for %d ad units on url %s by account %s got %d bids", pbs_req.Tid, len(pbs_req.AdUnits), pbs_req.Url, pbs_req.AccountID, len(pbs_resp.Bids))
+		}
+	*/
 	enc := json.NewEncoder(w)
 	enc.SetEscapeHTML(false)
 	enc.Encode(pbs_resp)

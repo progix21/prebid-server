@@ -181,17 +181,6 @@ func (a *PubmaticAdapter) Call(ctx context.Context, req *pbs.PBSRequest, bidder 
 	httpReq.Header.Add("Content-Type", "application/json;charset=utf-8")
 	httpReq.Header.Add("Accept", "application/json")
 
-	if pbReq.Device.Ext != nil {
-		var cookieData map[string]interface{}
-		if err := json.Unmarshal(pbReq.Device.Ext, &cookieData); err != nil {
-			glog.Error("\nSome Error in Unmarshal cookie using interface")
-		} else {
-			cval := cookieData["cookie"].(string)
-			if cval != "" {
-				httpReq.Header.Add("Cookie", cval)
-			}
-		}
-	}
 
 	httpReq.AddCookie(&http.Cookie{
 		Name:  "KADUSERCOOKIE",
