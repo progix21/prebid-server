@@ -102,18 +102,19 @@ var (
 
 	accountMetrics        map[string]*AccountMetrics // FIXME -- this seems like an unbounded queue
 	accountMetricsRWMutex sync.RWMutex
-
-	hostCookieSettings pbs.HostCookieSettings
-	userSyncDeps       pbs.UserSyncDeps
+	hostCookieSettings    pbs.HostCookieSettings
 )
 
 // Made global stuctures to use in InitPrebidServer()
-var syncers map[openrtb_ext.BidderName]usersyncers.Usersyncer
-var cfg *config.Configuration
-var g_ex exchange.Exchange
-var paramsValidator openrtb_ext.BidderParamValidator
-var storedReqFetcher stored_requests.Fetcher
-var g_metrics *pbsmetrics.Metrics
+var (
+	g_userSyncDeps     *pbs.UserSyncDeps
+	g_syncers          map[openrtb_ext.BidderName]usersyncers.Usersyncer
+	g_cfg              *config.Configuration
+	g_ex               exchange.Exchange
+	g_paramsValidator  openrtb_ext.BidderParamValidator
+	g_storedReqFetcher stored_requests.Fetcher
+	g_metrics          *pbsmetrics.Metrics
+)
 
 var exchanges map[string]adapters.Adapter
 var dataCache cache.Cache
@@ -124,7 +125,7 @@ type bidResult struct {
 	bid_list pbs.PBSBidSlice
 }
 
-var schemaDirectory string = "vendor/github.com/PubMatic-OpenWrap/prebid-server/static/bidder-params"
+var schemaDirectory string = "/home/http/GO_SERVER/dmhbserver/static/"
 
 const defaultPriceGranularity = "med"
 
@@ -212,7 +213,7 @@ type cookieSyncDeps struct {
 
 func CookieSync(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	cookieDepsParams := &cookieSyncDeps{
-		syncers:      syncers,
+		syncers:      g_syncers,
 		optOutCookie: &hostCookieSettings.OptOutCookie,
 		metric:       mCookieSyncMeter,
 	}
@@ -278,15 +279,15 @@ type auctionDeps struct {
 
 func OrtbAuctionEndpointWrapper(w http.ResponseWriter, r *http.Request) error {
 
-	err := openrtb2.OrtbAuctionEndpoint(g_ex, paramsValidator, storedReqFetcher, cfg, g_metrics, w, r)
+	err := openrtb2.OrtbAuctionEndpoint(g_ex, g_paramsValidator, g_storedReqFetcher, g_cfg, g_metrics, w, r)
 	return err
 
 }
 
 func Auction(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	auctionDepsParams := &auctionDeps{
-		cfg:     cfg,
-		syncers: syncers,
+		cfg:     g_cfg,
+		syncers: g_syncers,
 	}
 
 	auctionDepsParams.auction(w, r, nil)
@@ -649,7 +650,7 @@ func NewJsonDirectoryServer(validator openrtb_ext.BidderParamValidator) httprout
 }
 
 func ServeIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	http.ServeFile(w, r, "vendor/github.com/PubMatic-OpenWrap/prebid-server/static/index.html")
+	http.ServeFile(w, r, schemaDirectory+"index.html")
 }
 
 type NoCache struct {
@@ -698,12 +699,12 @@ func Validate(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 func GetUIDSWrapper(w http.ResponseWriter, r *http.Request) {
 	var temp httprouter.Params
-	userSyncDeps.GetUIDs(w, r, temp)
+	g_userSyncDeps.GetUIDs(w, r, temp)
 }
 
 func SetUIDSWrapper(w http.ResponseWriter, r *http.Request) {
 	var temp httprouter.Params
-	userSyncDeps.SetUID(w, r, temp)
+	g_userSyncDeps.SetUID(w, r, temp)
 }
 
 func loadDataCache(cfg *config.Configuration, db *sql.DB) (err error) {
@@ -777,31 +778,26 @@ func main() {
 	}
 }
 */
-//TODO: Input arguments shall be passsed as structure instead of individual params
-func InitPrebidServer(hostURL string, at int64, maxTimeout int64, path string) {
+//TODO: Input arguments shall be passsed as strcuture instead of individual params
+func InitPrebidServer(configFile string) {
 	rand.Seed(time.Now().UnixNano())
-	viper.SetConfigName("pbs")
-	viper.AddConfigPath(".")
-	viper.AddConfigPath("/etc/config")
 
-	// To add relative path support to use it in Unit Testing
-	if path != "" {
-		schemaDirectory = path + schemaDirectory
-	}
-	//Set Auction type for all partenrs from Config File
-	//adapters.SetAuctionTypeforAllPartners(at)
+	viper.SetConfigFile(configFile)
 
-	//Set maximum Timeout limit
-	//pbs.SetTimeLimitForAllPartners(maxTimeout)
+	//viper.SetConfigName("pbs")
+	//viper.AddConfigPath(".")
+	//viper.AddConfigPath("/etc/config/")
 
 	// HostURL is read  from config file
-	viper.SetDefault("external_url", hostURL)
+	//viper.SetDefault("external_url", hostURL)
+	//viper.SetDefault("port", 8000)
+	//viper.SetDefault("admin_port", 6060)
 	viper.SetDefault("default_timeout_ms", 250)
 	viper.SetDefault("cache.expected_millis", 10)
 	viper.SetDefault("datacache.type", "dummy")
 	// no metrics configured by default (metrics{host|database|username|password})
 
-	viper.SetDefault("stored_requests.filesystem", "true")
+	//viper.SetDefault("stored_requests.filesystem", "true")
 	viper.SetDefault("adapters.pubmatic.endpoint", "http://hbopenbid.pubmatic.com/translator?source=prebid-server")
 	viper.SetDefault("adapters.rubicon.endpoint", "http://exapi-us-east.rubiconproject.com/a/api/exchange.json")
 	viper.SetDefault("adapters.rubicon.usersync_url", "https://pixel.rubiconproject.com/exchange/sync.php?p=prebid")
@@ -814,12 +810,12 @@ func InitPrebidServer(hostURL string, at int64, maxTimeout int64, path string) {
 	viper.ReadInConfig()
 
 	var err error
-	cfg, err = config.New()
+	g_cfg, err = config.New()
 	if err != nil {
 		glog.Errorf("Viper was unable to read configurations: %v", err)
 	}
 
-	if err := serve(cfg); err != nil {
+	if err := serve(g_cfg); err != nil {
 		glog.Errorf("prebid-server failed: %v", err)
 	}
 }
@@ -902,7 +898,7 @@ func serve(cfg *config.Configuration) error {
 		)
 	}
 
-	b, err := ioutil.ReadFile("vendor/github.com/PubMatic-OpenWrap/prebid-server/static/pbs_request.json")
+	b, err := ioutil.ReadFile(schemaDirectory + "pbs_request.json")
 	if err != nil {
 		glog.Errorf("Unable to open pbs_request.json: %v", err)
 	} else {
@@ -927,7 +923,7 @@ func serve(cfg *config.Configuration) error {
 		})()
 	*/
 
-	paramsValidator, err = openrtb_ext.NewBidderParamsValidator(schemaDirectory)
+	g_paramsValidator, err = openrtb_ext.NewBidderParamsValidator(schemaDirectory + "bidder-params")
 	if err != nil {
 		glog.Fatalf("Failed to create the bidder params validator. %v", err)
 	}
@@ -945,24 +941,12 @@ func serve(cfg *config.Configuration) error {
 	g_metrics = pbsmetrics.NewMetrics(metricsRegistry, exchange.AdapterList())
 	g_ex = exchange.NewExchange(theClient, pbc.NewClient(&cfg.CacheURL), cfg, g_metrics)
 
-	storedReqFetcher, _, err = NewFetchers(&(cfg.StoredRequests), db)
+	g_storedReqFetcher, _, err = NewFetchers(&(cfg.StoredRequests), db)
 	if err != nil {
 		glog.Fatalf("Failed to initialize config backends. %v", err)
 	}
 
-	/*
-
-		openrtbEndpoint, err := openrtb2.NewEndpoint(theExchange, paramsValidator, byId, cfg, theMetrics)
-		if err != nil {
-			glog.Fatalf("Failed to create the openrtb endpoint handler. %v", err)
-		}
-
-			ampEndpoint, err := openrtb2.NewAmpEndpoint(theExchange, paramsValidator, byAmpId, cfg, theMetrics)
-			if err != nil {
-				glog.Fatalf("Failed to create the amp endpoint handler. %v", err)
-			}
-	*/
-	syncers = usersyncers.NewSyncerMap(cfg)
+	g_syncers = usersyncers.NewSyncerMap(cfg)
 
 	hostCookieSettings = pbs.HostCookieSettings{
 		Domain:       cfg.HostCookie.Domain,
@@ -972,16 +956,27 @@ func serve(cfg *config.Configuration) error {
 		OptInURL:     cfg.HostCookie.OptInURL,
 		OptOutCookie: cfg.HostCookie.OptOutCookie,
 	}
+
+	g_userSyncDeps = &pbs.UserSyncDeps{
+		HostCookieSettings: &hostCookieSettings,
+		ExternalUrl:        cfg.ExternalURL,
+		RecaptchaSecret:    cfg.RecaptchaSecret,
+		Metrics:            metricsRegistry,
+	}
+
 	/*
-		userSyncDeps := &pbs.UserSyncDeps{
-			HostCookieSettings: &hostCookieSettings,
-			ExternalUrl:        cfg.ExternalURL,
-			RecaptchaSecret:    cfg.RecaptchaSecret,
-			Metrics:            metricsRegistry,
+
+		openrtbEndpoint, err := openrtb2.NewEndpoint(theExchange, paramsValidator, byId, cfg, theMetrics)
+		if err != nil {
+			glog.Fatalf("Failed to create the openrtb endpoint handler. %v", err)
 		}
-	*/
-	/*
-			router := httprouter.New()
+
+		ampEndpoint, err := openrtb2.NewAmpEndpoint(theExchange, paramsValidator, byAmpId, cfg, theMetrics)
+		if err != nil {
+			glog.Fatalf("Failed to create the amp endpoint handler. %v", err)
+		}
+
+		router := httprouter.New()
 		router.POST("/auction", (&auctionDeps{cfg, syncers}).auction)
 		router.POST("/openrtb2/auction", openrtbEndpoint)
 		router.GET("/openrtb2/amp", ampEndpoint)

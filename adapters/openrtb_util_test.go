@@ -1,10 +1,11 @@
 package adapters
 
 import (
+	"testing"
+
 	"github.com/PubMatic-OpenWrap/prebid-server/pbs"
 	"github.com/mxmCherry/openrtb"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestCommonMediaTypes(t *testing.T) {
@@ -311,6 +312,11 @@ func TestOpenRTBMobile(t *testing.T) {
 		},
 		User: &openrtb.User{
 			BuyerUID: "test_buyeruid",
+			Ext:      openrtb.RawJSON([]byte("{\"consent\":\"val\"}")),
+		},
+		Regs: &openrtb.Regs{
+			COPPA: 1,
+			Ext:   openrtb.RawJSON([]byte("{\"gdpr\":1}")),
 		},
 	}
 	pbBidder := pbs.PBSBidder{
@@ -337,12 +343,16 @@ func TestOpenRTBMobile(t *testing.T) {
 	assert.EqualValues(t, resp.App.Bundle, "AppNexus.PrebidMobileDemo")
 	assert.EqualValues(t, resp.App.Publisher.ID, "1995257847363113")
 	assert.EqualValues(t, resp.User.BuyerUID, "test_buyeruid")
+	assert.EqualValues(t, resp.User.Ext, openrtb.RawJSON([]byte("{\"consent\":\"val\"}")))
 
 	assert.EqualValues(t, resp.Device.UA, "test_ua")
 	assert.EqualValues(t, resp.Device.IP, "test_ip")
 	assert.EqualValues(t, resp.Device.Make, "test_make")
 	assert.EqualValues(t, resp.Device.Model, "test_model")
 	assert.EqualValues(t, resp.Device.IFA, "test_ifa")
+
+	assert.EqualValues(t, resp.Regs.COPPA, 1)
+	assert.EqualValues(t, resp.Regs.Ext, openrtb.RawJSON([]byte("{\"gdpr\":1}")))
 }
 
 func TestOpenRTBEmptyUser(t *testing.T) {
@@ -394,6 +404,35 @@ func TestOpenRTBUserWithCookie(t *testing.T) {
 	resp, err := MakeOpenRTBGeneric(&pbReq, &pbBidder, "test", []pbs.MediaType{pbs.MEDIA_TYPE_BANNER}, true)
 	assert.Equal(t, err, nil)
 	assert.EqualValues(t, resp.User.BuyerUID, "abcde")
+}
+
+func TestOpenRTBRegs(t *testing.T) {
+	pbReq := pbs.PBSRequest{
+		Regs: &openrtb.Regs{
+			COPPA: 1,
+			Ext:   openrtb.RawJSON([]byte("{\"gdpr\":1}")),
+		},
+	}
+	pbBidder := pbs.PBSBidder{
+		BidderCode: "bannerCode",
+		AdUnits: []pbs.PBSAdUnit{
+			{
+				Code:       "unitCode2",
+				MediaTypes: []pbs.MediaType{pbs.MEDIA_TYPE_BANNER},
+				Sizes: []openrtb.Format{
+					{
+						W: 10,
+						H: 12,
+					},
+				},
+			},
+		},
+	}
+	resp, err := makeOpenRTBGeneric(&pbReq, &pbBidder, "test", []pbs.MediaType{pbs.MEDIA_TYPE_BANNER}, true)
+	assert.Equal(t, err, nil)
+	assert.EqualValues(t, resp.Regs.Ext, openrtb.RawJSON([]byte("{\"gdpr\":1}")))
+	assert.EqualValues(t, resp.Regs.COPPA, 1)
+
 }
 
 func TestSizesCopy(t *testing.T) {

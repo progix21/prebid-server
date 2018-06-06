@@ -55,10 +55,8 @@ func splitBidRequest(req *openrtb.BidRequest, impsByBidder map[string][]openrtb.
 //
 // The goal here is so that Bidders only get Imps and Imp.Ext values which are intended for them.
 func splitImps(imps []openrtb.Imp) (map[string][]openrtb.Imp, []error) {
-	fmt.Println("Inside  splitImps")
 	impExts, err := parseImpExts(imps)
 	if err != nil {
-		fmt.Println("************ GOT ERROR ************* ")
 		return nil, []error{err}
 	}
 

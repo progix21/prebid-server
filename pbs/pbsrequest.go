@@ -159,6 +159,7 @@ type PBSRequest struct {
 	IsDebug       bool            `json:"is_debug"`
 	App           *openrtb.App    `json:"app"`
 	Device        *openrtb.Device `json:"device"`
+	Regs          *openrtb.Regs   `json:"regs"`
 	PBSUser       json.RawMessage `json:"user"`
 	SDK           *SDK            `json:"sdk"`
 
