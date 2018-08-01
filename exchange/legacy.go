@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/buger/jsonparser"
-	"github.com/mxmCherry/openrtb"
 	"github.com/PubMatic-OpenWrap/prebid-server/adapters"
 	"github.com/PubMatic-OpenWrap/prebid-server/openrtb_ext"
 	"github.com/PubMatic-OpenWrap/prebid-server/pbs"
 	"github.com/PubMatic-OpenWrap/prebid-server/usersync"
+	"github.com/buger/jsonparser"
+	"github.com/mxmCherry/openrtb"
 )
 
 // AdaptLegacyAdapter turns a bidder.Adapter into an adaptedBidder.
@@ -250,6 +250,12 @@ func initPBSAdUnit(imp *openrtb.Imp, adUnit *pbs.PBSAdUnit) error {
 	topFrame := int8(0)
 	if imp.Banner != nil {
 		topFrame = imp.Banner.TopFrame
+		if *imp.Banner.H != 0 && *imp.Banner.W != 0 {
+			sizes = append(sizes, openrtb.Format{
+				W: *imp.Banner.W,
+				H: *imp.Banner.H,
+			})
+		}
 		sizes = append(sizes, imp.Banner.Format...)
 	}
 
