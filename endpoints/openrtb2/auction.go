@@ -609,11 +609,11 @@ func (deps *endpointDeps) validateImpExt(ext openrtb.RawJSON, aliases map[string
 			}
 			if bidderName, isValid := openrtb_ext.BidderMap[coreBidder]; isValid {
 				if err := deps.paramsValidator.Validate(bidderName, ext); err != nil {
-					return fmt.Errorf("request.imp[%d].ext.%s failed validation.\n%v", impIndex, coreBidder, err)
+          glog.Errorf("BidderParamsSchemaError: request.imp[%d].ext.%s failed validation.\n%v", impIndex, coreBidder, err)
 				}
 			} else {
-				return fmt.Errorf("request.imp[%d].ext contains unknown bidder: %s. Did you forget an alias in request.ext.prebid.aliases?", impIndex, bidder)
-			}
+				glog.Errorf("UnknownBidderError: request.imp[%d].ext contains unknown bidder: %s. Did you forget an alias in request.ext.prebid.aliases?", impIndex, bidder)
+      }
 		}
 	}
 
