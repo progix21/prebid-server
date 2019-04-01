@@ -6,12 +6,14 @@ import "encoding/json"
 // PublisherId and adSlot are mandatory parameters, others are optional parameters
 // Keywords is bid specific parameter,
 // WrapExt needs to be sent once per bid request
+// TestCrid if set to "1" will ask translator to send a test creative in response
 
 type ExtImpPubmatic struct {
 	PublisherId string                  `json:"publisherId"`
 	AdSlot      string                  `json:"adSlot"`
 	WrapExt     json.RawMessage         `json:"wrapper,omitempty"`
 	Keywords    []*ExtImpPubmaticKeyVal `json:"keywords,omitempty"`
+	TestCrid    string                  `json:"testcrid,omitempty"`
 }
 
 // ExtImpPubmaticKeyVal defines the contract for bidrequest.imp[i].ext.appnexus.keywords[i]

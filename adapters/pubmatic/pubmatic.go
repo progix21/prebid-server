@@ -6,11 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PubMatic-OpenWrap/prebid-server/errortypes"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/PubMatic-OpenWrap/prebid-server/errortypes"
 
 	"github.com/PubMatic-OpenWrap/prebid-server/adapters"
 	"github.com/PubMatic-OpenWrap/prebid-server/openrtb_ext"
@@ -441,18 +442,52 @@ func parseImpressionObject(imp *openrtb.Imp, wrapExt *string, pubID *string) err
 		return errors.New("Invalid adSlot provided")
 	}
 
-	if pubmaticExt.Keywords != nil && len(pubmaticExt.Keywords) != 0 {
+	/*if pubmaticExt.Keywords != nil && len(pubmaticExt.Keywords) != 0 {
 		kvstr := makeKeywordStr(pubmaticExt.Keywords)
 		imp.Ext = openrtb.RawJSON([]byte(kvstr))
 	} else {
 		imp.Ext = nil
-	}
+	}*/
+
+	imp.Ext = formImpExtStr(pubmaticExt)
 
 	return nil
 
 }
 
-func makeKeywordStr(keywords []*openrtb_ext.ExtImpPubmaticKeyVal) string {
+func formImpExtStr(pubmaticExt openrtb_ext.ExtImpPubmatic) openrtb.RawJSON {
+	var impExt openrtb.RawJSON
+	impExt = nil
+	extItems := make([]string, 0)
+	if pubmaticExt.Keywords != nil && len(pubmaticExt.Keywords) != 0 {
+		extItems = append(extItems, makeKeywordStr(pubmaticExt.Keywords)...)
+	}
+	if pubmaticExt.TestCrid == "1" {
+		extItems = append(extItems, fmt.Sprintf("\"%s\":\"%s\"", "testcrid", "1"))
+	}
+
+	if len(extItems) > 0 {
+		extItemsStr := "{" + strings.Join(extItems, ",") + "}"
+		impExt = openrtb.RawJSON([]byte(extItemsStr))
+	}
+	return impExt
+}
+
+func makeKeywordStr(keywords []*openrtb_ext.ExtImpPubmaticKeyVal) []string {
+	eachKv := make([]string, 0, len(keywords))
+	for _, keyVal := range keywords {
+		if len(keyVal.Values) == 0 {
+			logf("No values present for key = %s", keyVal.Key)
+			continue
+		} else {
+			eachKv = append(eachKv, fmt.Sprintf("\"%s\":\"%s\"", keyVal.Key, strings.Join(keyVal.Values[:], ",")))
+		}
+	}
+
+	return eachKv
+}
+
+/*func makeKeywordStr(keywords []*openrtb_ext.ExtImpPubmaticKeyVal) string {
 	eachKv := make([]string, 0, len(keywords))
 	for _, keyVal := range keywords {
 		if len(keyVal.Values) == 0 {
@@ -465,7 +500,7 @@ func makeKeywordStr(keywords []*openrtb_ext.ExtImpPubmaticKeyVal) string {
 
 	kvStr := "{" + strings.Join(eachKv, ",") + "}"
 	return kvStr
-}
+}*/
 
 func prepareImpressionExt(keywords map[string]string) string {
 
