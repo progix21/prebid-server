@@ -532,11 +532,13 @@ func SetupViper(v *viper.Viper, filename string) {
 	// Disabling adapters by default that require some specific config params.
 	// If you're using one of these, make sure you check out the documentation (https://github.com/PubMatic-OpenWrap/prebid-server/tree/master/docs/bidders)
 	// for them and specify all the parameters they need for them to work correctly.
-	v.SetDefault("adapters.audiencenetwork.disabled", true)
+	//v.SetDefault("adapters.audiencenetwork.disabled", true)
 
 	v.SetDefault("adapters.adtelligent.endpoint", "http://hb.adtelligent.com/auction")
 	v.SetDefault("adapters.adform.endpoint", "http://adx.adform.net/adx")
 	v.SetDefault("adapters.appnexus.endpoint", "http://ib.adnxs.com/openrtb2") // Docs: https://wiki.appnexus.com/display/supply/Incoming+Bid+Request+from+SSPs
+	v.SetDefault("adapters.audiencenetwork.endpoint", "https://an.facebook.com/placementbid.ortb")
+	v.SetDefault("adapters.audiencenetwork.platform_id", "504471640032041")
 	v.SetDefault("adapters.beachfront.endpoint", "https://display.bfmio.com/prebid_display")
 	v.SetDefault("adapters.beachfront.platform_id", "155")
 	v.SetDefault("adapters.brightroll.endpoint", "http://east-bid.ybp.yahoo.com/bid/appnexuspbs")

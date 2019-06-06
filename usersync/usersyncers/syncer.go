@@ -1,11 +1,11 @@
 package usersyncers
 
 import (
-	"github.com/PubMatic-OpenWrap/prebid-server/adapters/gamoshi"
 	"strings"
 	"text/template"
 
-	"github.com/golang/glog"
+	"github.com/PubMatic-OpenWrap/prebid-server/adapters/gamoshi"
+
 	ttx "github.com/PubMatic-OpenWrap/prebid-server/adapters/33across"
 	"github.com/PubMatic-OpenWrap/prebid-server/adapters/adform"
 	"github.com/PubMatic-OpenWrap/prebid-server/adapters/adkernelAdn"
@@ -33,6 +33,7 @@ import (
 	"github.com/PubMatic-OpenWrap/prebid-server/config"
 	"github.com/PubMatic-OpenWrap/prebid-server/openrtb_ext"
 	"github.com/PubMatic-OpenWrap/prebid-server/usersync"
+	"github.com/golang/glog"
 )
 
 // NewSyncerMap returns a map of all the usersyncer objects.
@@ -51,7 +52,7 @@ func NewSyncerMap(cfg *config.Configuration) map[openrtb_ext.BidderName]usersync
 	insertIntoMap(cfg, syncers, openrtb_ext.BidderConsumable, consumable.NewConsumableSyncer)
 	insertIntoMap(cfg, syncers, openrtb_ext.BidderConversant, conversant.NewConversantSyncer)
 	insertIntoMap(cfg, syncers, openrtb_ext.BidderEPlanning, eplanning.NewEPlanningSyncer)
-	insertIntoMap(cfg, syncers, openrtb_ext.BidderFacebook, audienceNetwork.NewFacebookSyncer)
+	insertIntoMap(cfg, syncers, openrtb_ext.BidderFacebook, audienceNetwork.NewAudienceNetworkSyncer)
 	insertIntoMap(cfg, syncers, openrtb_ext.BidderGrid, grid.NewGridSyncer)
 	insertIntoMap(cfg, syncers, openrtb_ext.BidderGumGum, gumgum.NewGumGumSyncer)
 	insertIntoMap(cfg, syncers, openrtb_ext.BidderIx, ix.NewIxSyncer)

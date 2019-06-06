@@ -44,6 +44,7 @@ func newAdapterMap(client *http.Client, cfg *config.Configuration, infos adapter
 		openrtb_ext.BidderAdkernelAdn: adkernelAdn.NewAdkernelAdnAdapter(cfg.Adapters[strings.ToLower(string(openrtb_ext.BidderAdkernelAdn))].Endpoint),
 		openrtb_ext.BidderAdtelligent: adtelligent.NewAdtelligentBidder(cfg.Adapters[string(openrtb_ext.BidderAdtelligent)].Endpoint),
 		openrtb_ext.BidderAppnexus:    appnexus.NewAppNexusBidder(client, cfg.Adapters[string(openrtb_ext.BidderAppnexus)].Endpoint),
+		openrtb_ext.BidderFacebook:    audienceNetwork.NewAudienceNetworkBidder(client, cfg.Adapters[strings.ToLower(string(openrtb_ext.BidderFacebook))].Endpoint, cfg.Adapters[strings.ToLower(string(openrtb_ext.BidderFacebook))].PlatformID),
 		// TODO #615: Update the config setup so that the Beachfront URLs can be configured, and use those in TestRaceIntegration in exchange_test.go
 		openrtb_ext.BidderBeachfront: beachfront.NewBeachfrontBidder(),
 		openrtb_ext.BidderBrightroll: brightroll.NewBrightrollBidder(cfg.Adapters[string(openrtb_ext.BidderBrightroll)].Endpoint),
@@ -71,8 +72,6 @@ func newAdapterMap(client *http.Client, cfg *config.Configuration, infos adapter
 	legacyBidders := map[openrtb_ext.BidderName]adapters.Adapter{
 		// TODO #267: Upgrade the Conversant adapter
 		openrtb_ext.BidderConversant: conversant.NewConversantAdapter(adapters.DefaultHTTPAdapterConfig, cfg.Adapters[string(openrtb_ext.BidderConversant)].Endpoint),
-		// TODO #211: Upgrade the Facebook adapter
-		openrtb_ext.BidderFacebook: audienceNetwork.NewAdapterFromFacebook(adapters.DefaultHTTPAdapterConfig, cfg.Adapters[strings.ToLower(string(openrtb_ext.BidderFacebook))].PlatformID),
 		// TODO #212: Upgrade the Index adapter
 		openrtb_ext.BidderIx: ix.NewIxAdapter(adapters.DefaultHTTPAdapterConfig, cfg.Adapters[strings.ToLower(string(openrtb_ext.BidderIx))].Endpoint),
 		// TODO #213: Upgrade the Lifestreet adapter
