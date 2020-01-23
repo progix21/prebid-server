@@ -9,13 +9,13 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/mxmCherry/openrtb"
-	nativeRequests "github.com/mxmCherry/openrtb/native/request"
-	nativeResponse "github.com/mxmCherry/openrtb/native/response"
 	"github.com/PubMatic-OpenWrap/prebid-server/adapters"
 	"github.com/PubMatic-OpenWrap/prebid-server/currencies"
 	"github.com/PubMatic-OpenWrap/prebid-server/errortypes"
 	"github.com/PubMatic-OpenWrap/prebid-server/openrtb_ext"
+	"github.com/mxmCherry/openrtb"
+	nativeRequests "github.com/mxmCherry/openrtb/native/request"
+	nativeResponse "github.com/mxmCherry/openrtb/native/response"
 	"golang.org/x/net/context/ctxhttp"
 )
 
@@ -290,7 +290,8 @@ func (bidder *bidderAdapter) doRequest(ctx context.Context, req *adapters.Reques
 		}
 	}
 	httpReq.Header = req.Headers
-
+	fmt.Printf("\nBidder Request object: %v\n", *httpReq)
+	fmt.Printf("\nBidder Request header: %v\n", req.Headers)
 	httpResp, err := ctxhttp.Do(ctx, bidder.Client, httpReq)
 	if err != nil {
 		if err == context.DeadlineExceeded {
@@ -316,7 +317,7 @@ func (bidder *bidderAdapter) doRequest(ctx context.Context, req *adapters.Reques
 			Message: fmt.Sprintf("Server responded with failure status: %d. Set request.test = 1 for debugging info.", httpResp.StatusCode),
 		}
 	}
-
+	fmt.Printf("\nBidder response object: %v\n", httpResp)
 	return &httpCallInfo{
 		request: req,
 		response: &adapters.ResponseData{
