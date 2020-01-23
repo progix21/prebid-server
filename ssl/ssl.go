@@ -25,13 +25,14 @@ func AppendPEMFileToRootCAPool(certPool *x509.CertPool, pemFileName string) (*x5
 	if certPool == nil {
 		certPool = x509.NewCertPool()
 	}
+	fmt.Printf("\npemFileName: %v\n", pemFileName)
 	if pemFileName != "" {
 		//read file and place it's contents in `pemCerts`
 		pemCerts, err := ioutil.ReadFile(pemFileName)
 		if err != nil {
 			return certPool, fmt.Errorf("Failed to read file %s: %v", pemFileName, err)
 		}
-
+		fmt.Printf("\npemCerts: %v\n", pemCerts)
 		//`pemCerts` has been obtained, append to certPool
 		certPool.AppendCertsFromPEM(pemCerts)
 	}
