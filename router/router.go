@@ -200,6 +200,7 @@ func New(cfg *config.Configuration, rateConvertor *currencies.RateConverter) (r 
 		glog.Infof("Could not read certificates file: %s \n", readCertErr.Error())
 	}
 	fmt.Printf("\nFinal certPool: %v\n", certPool)
+	fmt.Printf("\n****Found %d subjects in certPool\n", len(certPool.Subjects()))
 	theClient := &http.Client{
 		Transport: &http.Transport{
 			MaxIdleConns:        cfg.Client.MaxIdleConns,
