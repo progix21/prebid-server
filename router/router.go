@@ -396,7 +396,7 @@ func readDefaultRequest(defReqConfig config.DefReqConfig) (map[string]string, []
 	return aliases, []byte{}
 }
 
-func getPrometheusRegistry() *prometheus.Registry {
+func GetPrometheusRegistry() *prometheus.Registry {
 	mEngine, ok := g_metrics.(*metricsConf.DetailedMetricsEngine)
 	if !ok || mEngine == nil || mEngine.PrometheusMetrics == nil {
 		return nil
