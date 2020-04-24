@@ -13,6 +13,7 @@ type ExtImpPubmatic struct {
 	AdSlot      string                  `json:"adSlot"`
 	WrapExt     json.RawMessage         `json:"wrapper,omitempty"`
 	Keywords    []*ExtImpPubmaticKeyVal `json:"keywords,omitempty"`
+	Wakanda		bool					`json:"wakanda,omitempty"`
 }
 
 // ExtImpPubmaticKeyVal defines the contract for bidrequest.imp[i].ext.pubmatic.keywords[i]
