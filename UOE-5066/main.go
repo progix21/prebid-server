@@ -29,22 +29,37 @@ type AdPod struct {
 
 func main() {
 	pod := AdPod{}
-	pod.Minduration = 1
-	pod.MaxDuration = 90
+	pod.Minduration = 127
+	pod.MaxDuration = 128
 	pod.SlotMinDuration = 1
-	pod.SlotMaxDuration = 15
-	pod.MinAds = 1
-	pod.MaxAds = 8
+	pod.SlotMaxDuration = 12
+	pod.MinAds = 7
+	pod.MaxAds = 13
 
-	// get closet pod min duration
-	pod.ClosedMinDuration = getClosetFactorForMinDuration(float64(pod.Minduration), multipleOf)
-	// get closet pod max duration
-	pod.ClosedMaxDuration = getClosetFactorForMaxDuration(float64(pod.MaxDuration), multipleOf)
+	if pod.Minduration == pod.MaxDuration {
+		// in this case compute closed factor w.r.t multiple of
+		pod.ClosedMinDuration = getClosetFactor(float64(pod.Minduration), multipleOf)
+		pod.ClosedMaxDuration = pod.ClosedMinDuration
+	} else {
+		// get closet pod min duration
+		pod.ClosedMinDuration = getClosetFactorForMinDuration(float64(pod.Minduration), multipleOf)
+		// get closet pod max duration
+		pod.ClosedMaxDuration = getClosetFactorForMaxDuration(float64(pod.MaxDuration), multipleOf)
+	}
+
+	if pod.SlotMinDuration == pod.SlotMaxDuration {
+		// in this case compute closed factor w.r.t multiple of
+		pod.ClosedSlotMinDuration = int(getClosetFactor(float64(pod.SlotMinDuration), multipleOf))
+		pod.ClosedSlotMaxDuration = pod.ClosedSlotMinDuration
+	} else {
+		pod.ClosedSlotMinDuration = int(getClosetFactorForMinDuration(float64(pod.SlotMinDuration), multipleOf))
+		pod.ClosedSlotMaxDuration = int(getClosetFactorForMaxDuration(float64(pod.SlotMaxDuration), multipleOf))
+	}
 
 	pod.getImpressionObjects()
 }
 
-var multipleOf float64 = 1
+var multipleOf float64 = 5
 
 func (pod *AdPod) getImpressionObjects() int {
 
@@ -110,9 +125,9 @@ func getClosetFactorForMaxDuration(maxduration float64, multipleOf float64) floa
 
 func (pod *AdPod) getImpressionCount() int {
 	// compute imp count based
-	pod.ClosedSlotMinDuration = int(getClosetFactorForMinDuration(float64(pod.SlotMinDuration), multipleOf))
+	//pod.ClosedSlotMinDuration = int(getClosetFactorForMinDuration(float64(pod.SlotMinDuration), multipleOf))
 	impCntByMinAdSlotDuration := int(pod.ClosedMaxDuration) / pod.ClosedSlotMinDuration
-	pod.ClosedSlotMaxDuration = int(getClosetFactorForMaxDuration(float64(pod.SlotMaxDuration), multipleOf))
+	//pod.ClosedSlotMaxDuration = int(getClosetFactorForMaxDuration(float64(pod.SlotMaxDuration), multipleOf))
 	impCntByMaxAdSlotDuration := int(pod.MaxDuration) / pod.ClosedSlotMaxDuration
 
 	// get max impression count
@@ -137,7 +152,7 @@ func (pod *AdPod) getImpressionCount() int {
 func (pod *AdPod) getTimeForEachSlot(multipier float64) float64 {
 	absslottime, mantissa := math.Modf(float64(pod.ClosedMaxDuration) / float64(pod.impCnt))
 
-	if float64(pod.ClosedSlotMinDuration) > float64(pod.SlotMaxDuration) {
+	if float64(pod.ClosedSlotMinDuration) > float64(pod.ClosedSlotMaxDuration) {
 		fmt.Println("closetSlotMinDuration > pod.SlotMaxDuration")
 		os.Exit(1)
 
@@ -227,9 +242,9 @@ func (pod *AdPod) adjustFreeTime() int {
 
 	// if freetime is in multiples of given number (**multipleOf)
 	// get the smallest factor that can be assigned to each slot
-	// if isMultipleOf(pod.freeTime, multipleOf) {
-	// 	closetSlotDuration = multipleOf
-	// }
+	if isMultipleOf(pod.freeTime, multipleOf) {
+		closetSlotDuration = multipleOf
+	}
 
 	// check if adding closetSlotDuration to each slot not exceeding
 	// ClosedSlotMaxDuration
@@ -239,13 +254,30 @@ func (pod *AdPod) adjustFreeTime() int {
 		// till free time value = 0
 		slotCount := 0
 		i := closetSlotDuration
+		slotsFullWithCapacity := 0
+		timeAdjustedFromFreeTime := 0
 		for i <= pod.freeTime {
-			// check
-			//if(pod.slots[slotCount] >)
-			// assign
-			pod.slots[slotCount] += int(closetSlotDuration)
+			// check if slot time + closetSlotDuration < pod.ClosedSlotMaxDuration
+			if pod.slots[slotCount]+int(closetSlotDuration) <= pod.ClosedSlotMaxDuration {
+				// assign
+				pod.slots[slotCount] += int(closetSlotDuration)
+				// ensure alloted time is considered by slot time counter
+				i = i + closetSlotDuration
+				timeAdjustedFromFreeTime += int(closetSlotDuration)
+			} else {
+				// consider this slot as full of capacity
+				slotsFullWithCapacity++
+			}
+
+			if slotsFullWithCapacity == len(pod.slots) {
+				// all slots are full of capacity
+				//subtract adjusted from free time
+				pod.freeTime -= float64(timeAdjustedFromFreeTime)
+				// come out of for
+				break
+			}
+
 			slotCount++
-			i = i + closetSlotDuration
 			if slotCount >= len(pod.slots) {
 				slotCount = 0
 			}
