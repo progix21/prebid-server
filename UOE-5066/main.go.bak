@@ -1,0 +1,129 @@
+package main
+
+import (
+	"fmt"
+	"math"
+	"strconv"
+)
+
+/* test */
+type AdPod struct {
+	MinAds                      int `json:"minads,omitempty"`      //Default 1 if not specified
+	MaxAds                      int `json:"maxads,omitempty"`      //Default 1 if not specified
+	SlotMinDuration             int `json:"minduration,omitempty"` // adpod.minduration*adpod.minads should be greater than or equal to video.minduration
+	SlotMaxDuration             int `json:"maxduration,omitempty"` // adpod.maxduration*adpod.maxads should be less than or equal to video.maxduration + video.maxextended
+	AdvertiserExclusionPercent  int `json:"excladv,omitempty"`     // Percent value 0 means none of the ads can be from same advertiser 100 means can have all same advertisers
+	IABCategoryExclusionPercent int `json:"excliabcat,omitempty"`  // Percent value 0 means all ads should be of different IAB categories.
+	Minduration                 int
+	MaxDuration                 int
+	slots                       []int
+}
+
+func main() {
+	pod := AdPod{}
+	pod.Minduration = 1
+	pod.MaxDuration = 90
+	pod.SlotMinDuration = 11
+	pod.SlotMaxDuration = 15
+	pod.MinAds = 2
+	pod.MaxAds = 4
+	fmt.Printf("%+v\n\n", pod)
+	pod.maxAdBaseCount()
+}
+
+func (pod AdPod) maxAdBaseCount() int {
+	// compute imp count based
+	impCntByMinAdSlotDuration := pod.MaxDuration / pod.SlotMinDuration
+	impCntByMaxAdSlotDuration := pod.MaxDuration / pod.SlotMaxDuration
+
+	// get max impression count
+	impCnt := 0
+	if impCntByMaxAdSlotDuration > impCntByMinAdSlotDuration {
+		impCnt = impCntByMaxAdSlotDuration
+	} else {
+		impCnt = impCntByMinAdSlotDuration
+	}
+	//fmt.Println(impCnt)
+
+	// get time for each slot
+	durationForEachSlot := float64(pod.MaxDuration) / float64(impCnt)
+	//fmt.Println(durationForEachSlot)
+	abs := math.Abs(math.Round(durationForEachSlot))
+	mantissa := math.Abs(abs - durationForEachSlot)
+	//fmt.Println(mantissa)
+
+	// adjust mantissa
+	freeTime := mantissa * float64(impCnt)
+
+	// fmt.Println(freeTime)
+	// create list
+	pod.slots = make([]int, impCnt)
+	for i := 0; i < impCnt; i++ {
+		pod.slots[i] = int(abs)
+	}
+
+	pod.print(freeTime)
+
+	// adjust mantissa
+	freeTime = float64(pod.adjustFreeTime(freeTime))
+
+	pod.print(freeTime)
+
+	fmt.Println("Total Impressions =", impCnt)
+
+	return 1
+}
+
+func (pod AdPod) print(freeTime float64) {
+	setEq := false
+
+	totalTime := 0
+
+	for i := 0; i < len(pod.slots); i++ {
+		if setEq {
+			fmt.Print(" + ")
+		}
+		fmt.Print(pod.slots[i])
+		totalTime += pod.slots[i]
+		setEq = true
+	}
+	totalTime += int(freeTime)
+	fmt.Print(" + ", freeTime, "           = ", totalTime, "sec (Max Duration =", pod.MaxDuration, "sec)")
+	fmt.Println()
+	setEq = false
+	for i := 1; i <= len(pod.slots); i++ {
+		if setEq {
+			fmt.Print("   ")
+		}
+		fmt.Print("S" + strconv.Itoa(i))
+		setEq = true
+	}
+	fmt.Println("  (free)")
+}
+
+// return 1 -> freetime
+func (pod AdPod) adjustFreeTime(frtime float64) int {
+
+	freeTime := int(frtime)
+
+	// check slot0
+	slot0 := pod.slots[0]
+	if slot0 < pod.MaxDuration && (slot0+int(freeTime)) < pod.MaxDuration {
+		pod.slots[0] = slot0 + freeTime
+		fmt.Println("Free time is adusted by slot1")
+		return 0
+	}
+
+	// slot0 can not be used
+	// check next immidiete slot which
+	for i := 1; i < len(pod.slots); i++ {
+		if pod.slots[i] < pod.MaxDuration && (slot0+int(freeTime)) < pod.MaxDuration {
+			pod.slots[i] = slot0 + freeTime
+			fmt.Println("\n\nFree time is adusted by slot", i+1)
+			return 0
+		}
+	}
+
+	// none of the slot is able adust free time
+	return freeTime
+}
