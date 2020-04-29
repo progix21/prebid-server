@@ -3,13 +3,9 @@ package openrtb_ext
 import (
 	"testing"
 
-	"git.pubmatic.com/test/go-common/util"
+	"git.pubmatic.com/PubMatic/go-common/util"
 	"github.com/stretchr/testify/assert"
 )
-
-func getIntPtr(v int) *int {
-	return &v
-}
 
 func TestVideoAdPod_Validate(t *testing.T) {
 	type fields struct {
