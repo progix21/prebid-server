@@ -24,23 +24,21 @@ type AdPod struct {
 	ClosedSlotMaxDuration int
 	ClosedMinDuration     float64
 	ClosedMaxDuration     float64
-	// indicates the time which can not be adjusted  because each slot is full with
-	// allowed slot time or
-	freeTimeNotAdjusted float64
+	// indicates whether there are one/more slots with no time fill
+	hasSlotWithZeoTime bool
 }
 
 func main() {
 	pod := AdPod{}
-	pod.Minduration = 122
-	pod.MaxDuration = 126
-	pod.SlotMinDuration = 1
+	pod.Minduration = 5
+	pod.MaxDuration = 55
+	pod.SlotMinDuration = 2
 	pod.SlotMaxDuration = 12
-	pod.MinAds = 7
-	pod.MaxAds = 13
+	pod.MinAds = 1
+	pod.MaxAds = 1
 
 	pod.getImpressionObjects()
 
-	fmt.Println(pod.slots)
 }
 
 var multipleOf float64 = 5
@@ -78,7 +76,7 @@ func (pod *AdPod) getImpressionObjects() int {
 	pod.adjustFreeTime()
 	pod.validateTotalImpressions()
 	fmt.Println("\nTotal Impressions =", pod.impCnt, "(With Free Time Adjusted As Much as possible)")
-	fmt.Println("Free Time Unable To Adjust = ", pod.freeTimeNotAdjusted, "sec")
+	fmt.Println("Free Time Unable To Adjust = ", pod.freeTime, "sec")
 	if pod.impCnt > 0 {
 		pod.print(pod.freeTime)
 	}
@@ -205,7 +203,7 @@ func (pod *AdPod) getTimeForEachSlot(multipier float64) float64 {
 	}
 
 	if mantissa == 0.0 {
-		pod.freeTime += closeFactorAdjustment
+		pod.freeTime += closeFactorAdjustment * float64(slotCountFieldWithAbsSlotTime)
 	} else {
 		//	localAbsTime, _ := math.Modf(float64(pod.ClosedMaxDuration) / float64(pod.impCnt))
 		// if !isMultipleOf(localAbsTime, multipleOf) {
@@ -270,6 +268,8 @@ func (pod *AdPod) constructImpressionObjects(absslottime float64) {
 			slots[i] = int(absslottime)
 			totalSumOfSlotTime += (absslottime)
 		} else {
+			// flag that there are some slots with 0 time
+			pod.hasSlotWithZeoTime = true
 			break
 		}
 	}
@@ -286,17 +286,28 @@ func (pod *AdPod) validateTotalImpressions() {
 		}
 	}
 
+	// allow to remove slot only if > pod.MinAds
+	//if slotWithNonZeroTime > pod.MinAds {
 	// update impCnt with slotWithNonZeroTime
 	pod.impCnt = slotWithNonZeroTime
 	// update slots inside pod object
 	nonZeroslots := make([]int, pod.impCnt)
 	copy(nonZeroslots, *pod.slots)
 	*pod.slots = nonZeroslots
+	//}
+
+	if len(*pod.slots) < pod.MinAds || len(*pod.slots) > pod.MaxAds {
+		fmt.Println("Total Impressions= ", len(*pod.slots), "  (either <", pod.MinAds, " (pod.MinAds)  or  >", pod.MaxAds, " (pod.MaxAds)).")
+		pod.impCnt = 0
+		*pod.slots = make([]int, 0)
+	}
 
 	if float64(totalSlotTime) < pod.ClosedMinDuration || float64(totalSlotTime) > pod.ClosedMaxDuration {
-		fmt.Println("Total slot time ", totalSlotTime, " sec  (either < minpodtime or > maxpodtime).")
+		fmt.Println("Total slot time ", totalSlotTime, " sec  (either < ", pod.ClosedMinDuration, "(minpodtime) or > ", pod.ClosedMaxDuration, " (maxpodtime)).")
 		pod.impCnt = 0
+		*pod.slots = make([]int, 0)
 	}
+
 }
 
 func (pod AdPod) print(freeTime float64) {
@@ -313,14 +324,14 @@ func (pod AdPod) print(freeTime float64) {
 		setEq = true
 	}
 	totalTime += int(freeTime)
-	fmt.Print("  + ", freeTime, "           = ", totalTime, "sec (Max Duration =", pod.MaxDuration, "sec)")
+	fmt.Print("  + (", freeTime, ")          = ", totalTime, " sec (Max Duration =", pod.MaxDuration, "sec)")
 	fmt.Println()
 	setEq = false
 	for i := 1; i <= len(*pod.slots); i++ {
 		if setEq {
 			fmt.Print("   ")
 		}
-		fmt.Print("S" + strconv.Itoa(i))
+		fmt.Print("S"+strconv.Itoa(i), " ")
 		setEq = true
 	}
 	fmt.Println("  (free)")
@@ -362,8 +373,12 @@ func (pod *AdPod) adjustFreeTime() int {
 	slotsFullWithCapacity := 0
 	timeAdjustedFromFreeTime := 0
 	for i <= pod.freeTime {
-		// check if slot time + closetSlotDuration < pod.ClosedSlotMaxDuration
-		if (*pod.slots)[slotCount]+int(closetSlotDuration) <= pod.ClosedSlotMaxDuration {
+		// check if there are any slots which are with 0 time. Give priority to them
+		isSlotWithZeroTime := (*pod.slots)[slotCount] == 0 && pod.hasSlotWithZeoTime
+		// following condition is true if
+		//    1. the slot + closetSlotDuration = slotmax duration and there is no slot with zero time
+		// OR 2. the slot is itself, slot with zero time
+		if ((*pod.slots)[slotCount]+int(closetSlotDuration) <= pod.ClosedSlotMaxDuration && !pod.hasSlotWithZeoTime) || isSlotWithZeroTime {
 			// assign
 			(*pod.slots)[slotCount] += int(closetSlotDuration)
 			// ensure alloted time is considered by slot time counter
@@ -389,13 +404,13 @@ func (pod *AdPod) adjustFreeTime() int {
 		}
 	}
 
-	if i-closetSlotDuration == pod.freeTime {
-		// store freeTime which was not adjusted if any
-		pod.freeTimeNotAdjusted = pod.freeTime
-		// reset free time
-		pod.freeTime = 0
+	// if i-closetSlotDuration == pod.freeTime {
+	// 	// store freeTime which was not adjusted if any
+	// 	pod.freeTimeNotAdjusted = pod.freeTime
+	// 	// reset free time
+	// 	pod.freeTime = 0
 
-	}
+	// }
 	// } else {
 	if pod.freeTime != 0 {
 		//
