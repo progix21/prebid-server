@@ -307,7 +307,7 @@ func (deps *ctvEndpointDeps) readRequestExtension() (err []error) {
 				return
 			}
 
-			//removing key from request.ext
+			//removing key from extensions
 			deps.request.Ext = jsonparser.Delete(deps.request.Ext, keyAdPod)
 			if string(deps.request.Ext) == `{}` {
 				deps.request.Ext = nil
@@ -613,7 +613,34 @@ func getAdPodBidCategories(adpod AdPodBid) []string {
 
 //getAdPodBidExtension get commulative adpod bid details
 func getAdPodBidExtension(adpod AdPodBid) json.RawMessage {
-	return adpod[0].Ext
+	type adpodBidExt struct {
+		RefBids []string `json:"refbids,omitempty"`
+	}
+	type extbid struct {
+		/* TODO: this can be moved to openrtb_ext.ExtBid */
+		openrtb_ext.ExtBid
+		AdPod *adpodBidExt `json:"adpod,omitempty"`
+	}
+	bidExt := &extbid{
+		ExtBid: openrtb_ext.ExtBid{
+			Prebid: &openrtb_ext.ExtBidPrebid{
+				Type:  openrtb_ext.BidTypeVideo,
+				Video: &openrtb_ext.ExtBidPrebidVideo{},
+			},
+		},
+		AdPod: &adpodBidExt{
+			RefBids: make([]string, len(adpod)),
+		},
+	}
+
+	for i, bid := range adpod {
+		bidExt.AdPod.RefBids[i] = bid.ID
+		duration, _ := jsonparser.GetInt(bid.Ext, "prebid", "video", "duration")
+		bidExt.Prebid.Video.Duration += int(duration)
+	}
+
+	rawExt, _ := json.Marshal(bidExt)
+	return rawExt
 }
 
 /********************* AdPodGenerator Functions *********************/
@@ -671,8 +698,8 @@ func decodeImpressionID(id string) (string, int) {
 }
 
 func jsonlog(msg string, obj interface{}) {
-	if glog.V(4) {
-		data, _ := json.Marshal(obj)
-		glog.V(4).Infof("[OPENWRAP] %v:%v", msg, string(data))
-	}
+	//if glog.V(1) {
+	data, _ := json.Marshal(obj)
+	glog.Infof("[OPENWRAP] %v:%v", msg, string(data))
+	//}
 }
