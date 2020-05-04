@@ -31,29 +31,24 @@ const (
 	keyOffset = `offset`
 )
 
-//ImpBid type of data to be present for combinations
-type ImpBid struct {
-	*openrtb.Bid
-	OriginalImpID  string
-	SequenceNumber int
-	SeatName       string
-}
+type Bid = openrtb.Bid
 
 //AdPodBid combination contains ImpBid
-type AdPodBid []*ImpBid
+type AdPodBid struct {
+	Bids          []*Bid
+	OriginalImpID string
+	SeatName      string
+}
 
 //AdPodBids combination contains ImpBid
-type AdPodBids []AdPodBid
-
-//BidsMap map of impression with adpod details
-type BidsMap map[string]AdPodBid
+type AdPodBids []*AdPodBid
 
 //ImpAdPodConfig configuration for creating ads in adpod
 type ImpAdPodConfig struct {
-	ImpID          string
-	SequenceNumber int8
-	MinDuration    int64
-	MaxDuration    int64
+	ImpID          string `json:"id,omitempty"`
+	SequenceNumber int8   `json:"seq,omitempty"`
+	MinDuration    int64  `json:"minduration,omitempty"`
+	MaxDuration    int64  `json:"maxduration,omitempty"`
 }
 
 //ImpData example
@@ -61,7 +56,7 @@ type ImpData struct {
 	//AdPodGenerator
 	VideoExt openrtb_ext.VideoExtension
 	Config   []*ImpAdPodConfig
-	Bids     AdPodBid
+	Bid      *AdPodBid
 }
 
 //CTV Specific Endpoint
@@ -394,8 +389,8 @@ func getAdPodImpsConfigs(imp *openrtb.Imp, adpod *openrtb_ext.VideoAdPod) []*Imp
 //getImpressions will create number of impressions based on adpod configurations
 func getImpressions(podMinDuration, podMaxDuration int64, adpod *openrtb_ext.VideoAdPod) (imps [][2]int) {
 	max := *adpod.MaxAds
-	if max > 5 {
-		max = 5
+	if max > 2 {
+		max = 2
 	}
 	for i := 0; i < *adpod.MaxAds; i++ {
 		imps = append(imps, [2]int{*adpod.MinDuration, *adpod.MaxDuration})
@@ -451,28 +446,30 @@ func (deps *ctvEndpointDeps) validateBidResponse(req *openrtb.BidRequest, resp *
 
 //getBids reads bids from bidresponse object
 func (deps *ctvEndpointDeps) getBids(resp *openrtb.BidResponse) {
-	result := make(map[string]AdPodBid)
+	result := make(map[string]*AdPodBid)
 
 	for _, seat := range resp.SeatBid {
 		for _, bid := range seat.Bid {
-			originalImpID, sequence := decodeImpressionID(bid.ImpID)
-
-			result[originalImpID] = append(result[originalImpID], &ImpBid{
-				Bid:            &bid,
-				SeatName:       seat.Seat,
-				SequenceNumber: sequence,
-				OriginalImpID:  originalImpID,
-			})
+			originalImpID, _ := decodeImpressionID(bid.ImpID)
+			adpodBid, ok := result[originalImpID]
+			if !ok {
+				adpodBid = &AdPodBid{
+					OriginalImpID: originalImpID,
+					SeatName:      "pubmatic",
+				}
+				result[originalImpID] = adpodBid
+			}
+			adpodBid.Bids = append(adpodBid.Bids, &bid)
 		}
 	}
 
 	//Sort Bids by Price
 	for index, imp := range deps.request.Imp {
-		bids, ok := result[imp.ID]
+		adpodBid, ok := result[imp.ID]
 		if ok {
 			//sort bids
-			sort.Slice(bids[:], func(i, j int) bool { return bids[i].Price > bids[j].Price })
-			deps.impData[index].Bids = bids[:]
+			sort.Slice(adpodBid.Bids[:], func(i, j int) bool { return adpodBid.Bids[i].Price > adpodBid.Bids[j].Price })
+			deps.impData[index].Bid = adpodBid
 		}
 	}
 }
@@ -481,9 +478,9 @@ func (deps *ctvEndpointDeps) getBids(resp *openrtb.BidResponse) {
 func (deps *ctvEndpointDeps) doAdPodExclusions() AdPodBids {
 	result := AdPodBids{}
 	for index := 0; index < len(deps.request.Imp); index++ {
-		bids := deps.impData[index].Bids
-		if len(bids) > 0 {
-			adpodGenerator := NewAdPodGenerator(bids[:], nil, func(x *ImpBid, y *ImpBid) bool {
+		bid := deps.impData[index].Bid
+		if nil != bid && len(bid.Bids) > 0 {
+			adpodGenerator := NewAdPodGenerator(bid, nil, func(x *Bid, y *Bid) bool {
 				return true
 			})
 			adpod := adpodGenerator.GetAdPod()
@@ -500,18 +497,19 @@ func (deps *ctvEndpointDeps) doAdPodExclusions() AdPodBids {
 //createBidResponse
 func (deps *ctvEndpointDeps) createBidResponse(resp *openrtb.BidResponse, adpods AdPodBids) *openrtb.BidResponse {
 	bidResp := &openrtb.BidResponse{
-		ID:  resp.ID,
-		Ext: resp.Ext,
+		ID:         resp.ID,
+		Cur:        resp.Cur,
+		CustomData: resp.CustomData,
 	}
 	for _, adpod := range adpods {
-		if len(adpod) == 0 {
+		if len(adpod.Bids) == 0 {
 			continue
 		}
 		bid := deps.getAdPodBid(adpod)
 		if bid != nil {
 			found := false
 			for _, seat := range bidResp.SeatBid {
-				if seat.Seat == adpod[0].SeatName {
+				if seat.Seat == adpod.SeatName {
 					seat.Bid = append(seat.Bid, *bid)
 					found = true
 					break
@@ -519,7 +517,7 @@ func (deps *ctvEndpointDeps) createBidResponse(resp *openrtb.BidResponse, adpods
 			}
 			if found == false {
 				bidResp.SeatBid = append(bidResp.SeatBid, openrtb.SeatBid{
-					Seat: adpod[0].SeatName,
+					Seat: adpod.SeatName,
 					Bid: []openrtb.Bid{
 						*bid,
 					},
@@ -527,21 +525,61 @@ func (deps *ctvEndpointDeps) createBidResponse(resp *openrtb.BidResponse, adpods
 			}
 		}
 	}
+
+	//NOTE: this should be called at last
+	bidResp.Ext = deps.getBidResponseExt(resp)
+
 	return bidResp
 }
 
+//getBidResponseExt will return extension object
+func (deps *ctvEndpointDeps) getBidResponseExt(resp *openrtb.BidResponse) json.RawMessage {
+	type config struct {
+		ImpID string            `json:"impid"`
+		Imp   []*ImpAdPodConfig `json:"imp,omitempty"`
+	}
+	type ext struct {
+		Response openrtb.BidResponse `json:"bidresponse,omitempty"`
+		Config   []config            `json:"config,omitempty"`
+	}
+
+	_ext := ext{
+		Response: *resp,
+		Config:   make([]config, len(deps.impData)),
+	}
+
+	for index, imp := range deps.impData {
+		_ext.Config[index].ImpID = deps.request.Imp[index].ID
+		_ext.Config[index].Imp = imp.Config[:]
+	}
+
+	for i := range resp.SeatBid {
+		for j := range resp.SeatBid[i].Bid {
+			resp.SeatBid[i].Bid[j].AdM = ""
+		}
+	}
+
+	//Remove extension parameter
+	_ext.Response.Ext = nil
+
+	data, _ := json.Marshal(_ext)
+	data, _ = jsonparser.Set(resp.Ext, data, "adpod")
+
+	return data[:]
+}
+
 //getAdPodBid
-func (deps *ctvEndpointDeps) getAdPodBid(adpod AdPodBid) *openrtb.Bid {
+func (deps *ctvEndpointDeps) getAdPodBid(adpod *AdPodBid) *Bid {
 	bid := openrtb.Bid{}
 	//TODO: Write single for loop to get all details
 	bidID, err := uuid.NewV4()
 	if nil == err {
 		bid.ID = bidID.String()
 	} else {
-		bid.ID = adpod[0].ID
+		bid.ID = adpod.Bids[0].ID
 	}
 
-	bid.ImpID = adpod[0].OriginalImpID
+	bid.ImpID = adpod.OriginalImpID
 	bid.AdM = *getAdPodBidCreative(adpod)
 	bid.Price = getAdPodBidPrice(adpod)
 	bid.ADomain = getAdPodBidAdvertiserDomain(adpod)
@@ -551,12 +589,12 @@ func (deps *ctvEndpointDeps) getAdPodBid(adpod AdPodBid) *openrtb.Bid {
 }
 
 //getAdPodBidCreative get commulative adpod bid details
-func getAdPodBidCreative(adpod AdPodBid) *string {
+func getAdPodBidCreative(adpod *AdPodBid) *string {
 	doc := etree.NewDocument()
 	vast := doc.CreateElement("VAST")
 	vast.CreateAttr("version", "3.0")
 	sequenceNumber := 1
-	for _, bid := range adpod {
+	for _, bid := range adpod.Bids {
 		adDoc := etree.NewDocument()
 		if err := adDoc.ReadFromString(bid.AdM); err != nil {
 			continue
@@ -574,25 +612,25 @@ func getAdPodBidCreative(adpod AdPodBid) *string {
 	}
 	bidAdM, err := doc.WriteToString()
 	if nil != err {
-		fmt.Printf("VIRAL ERROR, %v", err.Error())
-		return &bidAdM
+		fmt.Printf("ERROR, %v", err.Error())
+		return nil
 	}
 	return &bidAdM
 }
 
 //getAdPodBidPrice get commulative adpod bid details
-func getAdPodBidPrice(adpod AdPodBid) float64 {
+func getAdPodBidPrice(adpod *AdPodBid) float64 {
 	var price float64 = 0
-	for _, ad := range adpod {
+	for _, ad := range adpod.Bids {
 		price = price + ad.Price
 	}
 	return price
 }
 
 //getAdPodBidAdvertiserDomain get commulative adpod bid details
-func getAdPodBidAdvertiserDomain(adpod AdPodBid) []string {
+func getAdPodBidAdvertiserDomain(adpod *AdPodBid) []string {
 	var domains []string
-	for _, ad := range adpod {
+	for _, ad := range adpod.Bids {
 		domains = append(domains, ad.ADomain...)
 	}
 	//send unique domains only
@@ -600,9 +638,9 @@ func getAdPodBidAdvertiserDomain(adpod AdPodBid) []string {
 }
 
 //getAdPodBidCategories get commulative adpod bid details
-func getAdPodBidCategories(adpod AdPodBid) []string {
+func getAdPodBidCategories(adpod *AdPodBid) []string {
 	var category []string
-	for _, ad := range adpod {
+	for _, ad := range adpod.Bids {
 		if len(ad.Cat) > 0 {
 			category = append(category, ad.Cat...)
 		}
@@ -612,7 +650,7 @@ func getAdPodBidCategories(adpod AdPodBid) []string {
 }
 
 //getAdPodBidExtension get commulative adpod bid details
-func getAdPodBidExtension(adpod AdPodBid) json.RawMessage {
+func getAdPodBidExtension(adpod *AdPodBid) json.RawMessage {
 	type adpodBidExt struct {
 		RefBids []string `json:"refbids,omitempty"`
 	}
@@ -629,11 +667,11 @@ func getAdPodBidExtension(adpod AdPodBid) json.RawMessage {
 			},
 		},
 		AdPod: &adpodBidExt{
-			RefBids: make([]string, len(adpod)),
+			RefBids: make([]string, len(adpod.Bids)),
 		},
 	}
 
-	for i, bid := range adpod {
+	for i, bid := range adpod.Bids {
 		bidExt.AdPod.RefBids[i] = bid.ID
 		duration, _ := jsonparser.GetInt(bid.Ext, "prebid", "video", "duration")
 		bidExt.Prebid.Video.Duration += int(duration)
@@ -647,22 +685,22 @@ func getAdPodBidExtension(adpod AdPodBid) json.RawMessage {
 
 //IAdPodGenerator interface for generating AdPod from Ads
 type IAdPodGenerator interface {
-	GetAdPod() AdPodBid
+	GetAdPod() *AdPodBid
 }
 
 //Comparator check exclusion conditions
-type Comparator func(*ImpBid, *ImpBid) bool
+type Comparator func(*Bid, *Bid) bool
 
 //AdPodGenerator AdPodGenerator
 type AdPodGenerator struct {
 	IAdPodGenerator
-	bids   AdPodBid
+	bids   *AdPodBid
 	config *openrtb_ext.VideoAdPod
 	comp   Comparator
 }
 
 //NewAdPodGenerator will generate adpod based on configuration
-func NewAdPodGenerator(bids AdPodBid, config *openrtb_ext.VideoAdPod, comp Comparator) *AdPodGenerator {
+func NewAdPodGenerator(bids *AdPodBid, config *openrtb_ext.VideoAdPod, comp Comparator) *AdPodGenerator {
 	return &AdPodGenerator{
 		bids:   bids,
 		config: config,
@@ -671,16 +709,19 @@ func NewAdPodGenerator(bids AdPodBid, config *openrtb_ext.VideoAdPod, comp Compa
 }
 
 //GetAdPod will return Adpod based on configurations
-func (o *AdPodGenerator) GetAdPod() AdPodBid {
-	var result AdPodBid
+func (o *AdPodGenerator) GetAdPod() *AdPodBid {
+	result := &AdPodBid{
+		OriginalImpID: o.bids.OriginalImpID,
+		SeatName:      o.bids.SeatName,
+	}
 	count := 3
-	for i, bid := range o.bids {
+	for i, bid := range o.bids.Bids {
 		if i >= count {
 			break
 		}
-		result = append(result, bid)
+		result.Bids = append(result.Bids, bid)
 	}
-	return result[:]
+	return result
 }
 
 /********************* Helper Functions *********************/
