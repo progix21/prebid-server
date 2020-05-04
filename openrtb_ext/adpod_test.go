@@ -3,7 +3,6 @@ package openrtb_ext
 import (
 	"testing"
 
-	"git.pubmatic.com/PubMatic/go-common/util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -264,7 +263,7 @@ func TestVideoExtension_Validate(t *testing.T) {
 		{
 			name: "ErrInvalidAdPodOffset",
 			fields: fields{
-				Offset: util.GetIntPtr(-1),
+				Offset: getIntPtr(-1),
 			},
 			wantErr: errInvalidAdPodOffset,
 		},
