@@ -18,6 +18,7 @@ type AdPodConfig struct {
 	MaxDuration     int64
 
 	slots                 *[]int64
+	imps                  [][2]int64
 	impCnt                int64
 	freeTime              float64
 	ClosedSlotMinDuration int64
@@ -225,6 +226,7 @@ func (config *AdPodConfig) getTimeForEachSlot(multipier float64) float64 {
 func (config *AdPodConfig) constructImpressionObjects(absslottime float64) {
 
 	slots := make([]int64, config.impCnt)
+	config.imps = make([][2]int64, config.impCnt)
 	config.slots = &slots
 
 	totalSumOfSlotTime := 0.0
@@ -233,6 +235,8 @@ func (config *AdPodConfig) constructImpressionObjects(absslottime float64) {
 		if totalSumOfSlotTime+absslottime <= config.ClosedMaxDuration {
 			slots[i] = int64(absslottime)
 			totalSumOfSlotTime += (absslottime)
+			config.imps[i][1] = slots[i]
+			config.imps[i][0] = config.imps[i][1]
 		} else {
 			// flag that there are some slots with 0 time
 			config.slotsWithZeroTime++
@@ -328,6 +332,7 @@ func (config *AdPodConfig) adjustFreeTime() int64 {
 	// total time counter.  Here taking abosolute value of timeToMatchWithPodMaxDuration
 	// timeToMatchWithPodMaxDuration can be negative. See testcase #24
 	totalTimeCounter := config.freeTime + math.Abs(timeToMatchWithPodMaxDuration)
+	config.imps = make([][2]int64, config.impCnt)
 	for i <= totalTimeCounter {
 		if config.freeTime == 0 && timeToMatchWithPodMaxDuration == 0 {
 			break
@@ -353,6 +358,9 @@ func (config *AdPodConfig) adjustFreeTime() int64 {
 				config.slotsWithZeroTime--
 			}
 			(*config.slots)[slotCount] += int64(closetSlotDuration)
+
+			config.imps[slotCount][1] = (*config.slots)[slotCount]
+			config.imps[slotCount][0] = config.imps[slotCount][1]
 			// ensure alloted time is considered by slot time counter
 			i = i + closetSlotDuration
 			if config.freeTime != 0 {
@@ -362,6 +370,7 @@ func (config *AdPodConfig) adjustFreeTime() int64 {
 				fmt.Println("timeToMatchWithPodMaxDuration (", timeToMatchWithPodMaxDuration, ") is adjusted by slot s", slotCount)
 				timeToMatchWithPodMaxDuration = 0 // reset
 				closetSlotDuration = timeToMatchWithPodMaxDuration
+				config.imps[slotCount][0] = config.MinDuration
 				i++ // break for loop
 			}
 		} else {

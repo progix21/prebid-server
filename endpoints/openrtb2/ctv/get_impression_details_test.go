@@ -24,6 +24,7 @@ type Expected struct {
 	closedSlotMinDuration int64   // ad slot
 	closedSlotMaxDuration int64   // ad slot
 
+	output [][2]int64
 }
 
 var debugOn = true
@@ -46,10 +47,10 @@ func TestClosedPodMinDuration(t *testing.T) {
 func TestCase2(t *testing.T) {
 	pod := newTestPod(1, 90, 11, 15, 2, 8)
 	expected := Expected{
-		impressionCount: 6,
-		freeTime:        0.0,
-		adSlotTimeInSec: []int64{15, 15, 15, 15, 15, 15},
-
+		impressionCount:       6,
+		freeTime:              0.0,
+		adSlotTimeInSec:       []int64{15, 15, 15, 15, 15, 15},
+		output:                [][2]int64{{15, 15}, {15, 15}, {15, 15}, {15, 15}, {15, 15}, {15, 15}},
 		closedMinDuration:     5,
 		closedMaxDuration:     90,
 		closedSlotMinDuration: 15,
@@ -64,6 +65,7 @@ func TestCase3(t *testing.T) {
 		impressionCount: 4,
 		freeTime:        30.0,
 		adSlotTimeInSec: []int64{15, 15, 15, 15},
+		output:          [][2]int64{{15, 15}, {15, 15}, {15, 15}, {15, 15}},
 
 		closedMinDuration:     5,
 		closedMaxDuration:     90,
@@ -79,6 +81,7 @@ func TestCase4(t *testing.T) {
 		impressionCount: 1,
 		freeTime:        0.0,
 		adSlotTimeInSec: []int64{15},
+		output:          [][2]int64{{15, 15}},
 
 		closedMinDuration:     5,
 		closedMaxDuration:     15,
@@ -94,6 +97,7 @@ func TestCase5(t *testing.T) {
 		impressionCount: 2,
 		freeTime:        0.0,
 		adSlotTimeInSec: []int64{10, 5},
+		output:          [][2]int64{{15, 15}, {5, 5}},
 
 		closedMinDuration:     5,
 		closedMaxDuration:     15,
@@ -109,6 +113,7 @@ func TestCase6(t *testing.T) {
 		impressionCount: 8,
 		freeTime:        0.0,
 		adSlotTimeInSec: []int64{15, 15, 10, 10, 10, 10, 10, 10},
+		output:          [][2]int64{{15, 15}, {15, 15}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}},
 
 		closedMinDuration:     5,
 		closedMaxDuration:     90,
@@ -124,6 +129,7 @@ func TestCase7(t *testing.T) {
 		impressionCount: 1,
 		freeTime:        15.0,
 		adSlotTimeInSec: []int64{15},
+		output:          [][2]int64{{15, 15}},
 
 		closedMinDuration:     15,
 		closedMaxDuration:     30,
@@ -139,6 +145,7 @@ func TestCase8(t *testing.T) {
 		impressionCount: 3,
 		freeTime:        0.0,
 		adSlotTimeInSec: []int64{15, 10, 10},
+		output:          [][2]int64{{15, 15}, {10, 10}, {10, 10}},
 
 		closedMinDuration:     35,
 		closedMaxDuration:     35,
@@ -154,6 +161,7 @@ func TestCase9(t *testing.T) {
 		impressionCount: 0,
 		freeTime:        5.0,
 		adSlotTimeInSec: []int64{},
+		output:          [][2]int64{},
 
 		closedMinDuration:     35,
 		closedMaxDuration:     35,
@@ -169,6 +177,7 @@ func TestCase10(t *testing.T) {
 		impressionCount: 6,
 		freeTime:        0.0,
 		adSlotTimeInSec: []int64{15, 10, 10, 10, 10, 10},
+		output:          [][2]int64{{15, 15}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}},
 
 		closedMinDuration:     35,
 		closedMaxDuration:     65,
@@ -184,6 +193,7 @@ func TestCase11(t *testing.T) {
 		impressionCount: 0, //7,
 		freeTime:        5.0,
 		adSlotTimeInSec: []int64{}, // []int64{10, 10, 10, 10, 10, 10, 5},
+		output:          [][2]int64{},
 
 		closedMinDuration:     35,
 		closedMaxDuration:     65,
@@ -199,6 +209,7 @@ func TestCase12(t *testing.T) {
 		impressionCount: 10,
 		freeTime:        0.0,
 		adSlotTimeInSec: []int64{10, 10, 10, 10, 10, 10, 10, 10, 10, 10},
+		output:          [][2]int64{{10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}},
 
 		closedMinDuration:     100,
 		closedMaxDuration:     100,
@@ -214,6 +225,7 @@ func TestCase13(t *testing.T) {
 		impressionCount: 0,
 		freeTime:        30,
 		adSlotTimeInSec: []int64{},
+		output:          [][2]int64{},
 
 		closedMinDuration:     60,
 		closedMaxDuration:     60,
@@ -229,6 +241,7 @@ func TestCase14(t *testing.T) {
 		impressionCount: 6,
 		freeTime:        30,
 		adSlotTimeInSec: []int64{5, 5, 5, 5, 5, 5},
+		output:          [][2]int64{{5, 5}, {5, 5}, {5, 5}, {5, 5}, {5, 5}, {5, 5}},
 
 		closedMinDuration:     30,
 		closedMaxDuration:     60,
@@ -246,6 +259,7 @@ func TestCase15(t *testing.T) {
 		impressionCount: 0,
 		freeTime:        25,
 		adSlotTimeInSec: []int64{},
+		output:          [][2]int64{},
 
 		closedMinDuration:     30,
 		closedMaxDuration:     60,
@@ -261,6 +275,7 @@ func TestCase16(t *testing.T) {
 		impressionCount: 13,
 		freeTime:        0,
 		adSlotTimeInSec: []int64{11, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5},
+		output:          [][2]int64{{1, 11}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {5, 5}},
 
 		closedMinDuration:     125,
 		closedMaxDuration:     125,
@@ -276,6 +291,7 @@ func TestCase17(t *testing.T) {
 		impressionCount: 13,
 		freeTime:        0,
 		adSlotTimeInSec: []int64{12, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5},
+		output:          [][2]int64{{1, 12}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {5, 5}},
 
 		closedMinDuration:     125,
 		closedMaxDuration:     125,
@@ -291,6 +307,7 @@ func TestCase18(t *testing.T) {
 		impressionCount: 0,
 		freeTime:        120,
 		adSlotTimeInSec: []int64{},
+		output:          [][2]int64{},
 
 		closedMinDuration:     125,
 		closedMaxDuration:     125,
@@ -306,6 +323,7 @@ func TestCase19(t *testing.T) {
 		impressionCount: 0,
 		freeTime:        0,
 		adSlotTimeInSec: []int64{}, // 90 -25 = 65
+		output:          [][2]int64{},
 
 		closedMinDuration:     90,
 		closedMaxDuration:     90,
@@ -321,6 +339,7 @@ func TestCase20(t *testing.T) {
 		impressionCount: 9,
 		freeTime:        0,
 		adSlotTimeInSec: []int64{10, 10, 10, 10, 10, 10, 10, 10, 10},
+		output:          [][2]int64{{10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}},
 
 		closedMinDuration:     90,
 		closedMaxDuration:     90,
@@ -336,6 +355,7 @@ func TestCase23(t *testing.T) {
 		impressionCount: 12,
 		freeTime:        0,
 		adSlotTimeInSec: []int64{10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10},
+		output:          [][2]int64{{10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}},
 
 		closedMinDuration:     120,
 		closedMaxDuration:     120,
@@ -354,6 +374,7 @@ func TestCase24(t *testing.T) {
 		impressionCount: 2,
 		freeTime:        0,
 		adSlotTimeInSec: []int64{70, 64},
+		output:          [][2]int64{{70, 70}, {60, 64}},
 
 		closedMinDuration:     135,
 		closedMaxDuration:     135,
@@ -367,10 +388,10 @@ func TestCase24(t *testing.T) {
 func TestCase26(t *testing.T) {
 	pod := newTestPod(90, 90, 45, 45, 2, 3)
 	expected := Expected{
-		impressionCount: 2,
-		freeTime:        0,
-		adSlotTimeInSec: []int64{45, 45},
-
+		impressionCount:       2,
+		freeTime:              0,
+		adSlotTimeInSec:       []int64{45, 45},
+		output:                [][2]int64{{45, 45}, {45, 45}},
 		closedMinDuration:     90,
 		closedMaxDuration:     90,
 		closedSlotMinDuration: 45,
@@ -382,10 +403,10 @@ func TestCase26(t *testing.T) {
 func TestCase27(t *testing.T) {
 	pod := newTestPod(5, 90, 2, 45, 2, 3)
 	expected := Expected{
-		impressionCount: 3,
-		freeTime:        0,
-		adSlotTimeInSec: []int64{30, 30, 30},
-
+		impressionCount:       3,
+		freeTime:              0,
+		adSlotTimeInSec:       []int64{30, 30, 30},
+		output:                [][2]int64{{30, 30}, {30, 30}, {30, 30}},
 		closedMinDuration:     5,
 		closedMaxDuration:     90,
 		closedSlotMinDuration: 5,
@@ -397,10 +418,10 @@ func TestCase27(t *testing.T) {
 func TestCase28(t *testing.T) {
 	pod := newTestPod(5, 180, 2, 90, 2, 6)
 	expected := Expected{
-		impressionCount: 6,
-		freeTime:        0,
-		adSlotTimeInSec: []int64{30, 30, 30, 30, 30, 30},
-
+		impressionCount:       6,
+		freeTime:              0,
+		adSlotTimeInSec:       []int64{30, 30, 30, 30, 30, 30},
+		output:                [][2]int64{{30, 30}, {30, 30}, {30, 30}, {30, 30}, {30, 30}, {30, 30}},
 		closedMinDuration:     5,
 		closedMaxDuration:     180,
 		closedSlotMinDuration: 5,
@@ -415,6 +436,7 @@ func TestCase29(t *testing.T) {
 		impressionCount: 3,
 		freeTime:        0,
 		adSlotTimeInSec: []int64{25, 20, 20},
+		output:          [][2]int64{{25, 25}, {20, 20}, {20, 20}},
 
 		closedMinDuration:     5,
 		closedMaxDuration:     65,
@@ -435,6 +457,38 @@ func (p TestAdPod) test(t *testing.T, expected Expected) {
 	validateClosedMaxDuration(t, pod, expected.closedMaxDuration)
 	validateClosedSlotMinDuration(t, pod, expected.closedSlotMinDuration)
 	validateClosedSlotMaxDuration(t, pod, expected.closedSlotMaxDuration)
+	validate2dArrayOutput(t, pod, expected.output)
+}
+
+func validate2dArrayOutput(t *testing.T, pod AdPodConfig, expectedOutput [][2]int64) {
+	if len(pod.imps) != len(expectedOutput) {
+		t.Errorf("Expecte Number of Ad Slots %v  . But Found %v", len(expectedOutput), len(pod.imps))
+	} else {
+		if debugOn {
+			fmt.Printf("** Got Number of Ad Slots = %v\n", len(pod.imps))
+		}
+	}
+
+	// check each output
+	for i := 0; i < len(expectedOutput); i++ {
+		for j := 0; j < len(pod.imps); j++ {
+			if expectedOutput[i][0] != pod.imps[j][0] {
+				t.Errorf("Expected Min Duration for Ad Slot %v = %v  . But Found %v", i, expectedOutput[i][0], pod.imps[j][0])
+			} else {
+				if debugOn {
+					fmt.Printf("** Got Min Duration for Ad Slot %v = %v \n", i, pod.imps[j][0])
+				}
+			}
+
+			if expectedOutput[i][1] != pod.imps[j][1] {
+				t.Errorf("Expected Min Duration for Ad Slot %v = %v  . But Found %v", i, expectedOutput[i][1], pod.imps[j][1])
+			} else {
+				if debugOn {
+					fmt.Printf("** Got Min Duration for Ad Slot %v = %v \n", i, pod.imps[j][1])
+				}
+			}
+		}
+	}
 }
 
 func validateTimeForEachAdSlot(t *testing.T, pod AdPodConfig, expectedAdSlotTimeInSec []int64) {
