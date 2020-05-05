@@ -42,7 +42,7 @@ func TestClosedPodMinDuration(t *testing.T) {
 	//pod := newTestPod(6, 1, 1, 1, 1, 1)
 	pod := newTestPod(1, 90, 11, 15, 2, 8)
 	// multipleOf = 5
-	cfg := getImpressionObjectsv2(pod.podMinDuration, pod.podMaxDuration, pod.vPod)
+	cfg, _ := getImpressions(pod.podMinDuration, pod.podMaxDuration, pod.vPod)
 	validateClosedMinDuration(t, cfg, 5)
 }
 
@@ -449,7 +449,7 @@ func TestCase29(t *testing.T) {
 }
 
 func (p TestAdPod) test(t *testing.T, expected Expected) {
-	pod := getImpressionObjectsv2(p.podMinDuration, p.podMaxDuration, p.vPod)
+	pod, _ := getImpressions(p.podMinDuration, p.podMaxDuration, p.vPod)
 	fmt.Println("")
 	validateImpressionCount(t, pod, expected.impressionCount)
 	validateTimeForEachAdSlot(t, pod, expected.adSlotTimeInSec)
