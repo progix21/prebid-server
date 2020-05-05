@@ -323,7 +323,7 @@ func TestCase19(t *testing.T) {
 	pod := newTestPod(90, 90, 7, 9, 3, 5)
 	expected := Expected{
 		impressionCount: 0,
-		freeTime:        0,
+		freeTime:        pod.podMaxDuration,
 		adSlotTimeInSec: []int64{}, // 90 -25 = 65
 		output:          [][2]int64{},
 
@@ -356,8 +356,8 @@ func TestCase23(t *testing.T) {
 	expected := Expected{
 		impressionCount: 12,
 		freeTime:        0,
-		adSlotTimeInSec: []int64{10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10},
-		output:          [][2]int64{{10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}},
+		adSlotTimeInSec: []int64{14, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10},
+		output:          [][2]int64{{4, 14}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}},
 
 		closedMinDuration:     120,
 		closedMaxDuration:     120,
@@ -375,8 +375,8 @@ func TestCase24(t *testing.T) {
 	expected := Expected{
 		impressionCount: 2,
 		freeTime:        0,
-		adSlotTimeInSec: []int64{70, 64},
-		output:          [][2]int64{{70, 70}, {60, 64}},
+		adSlotTimeInSec: []int64{69, 65},
+		output:          [][2]int64{{69, 69}, {65, 65}},
 
 		closedMinDuration:     135,
 		closedMaxDuration:     135,
