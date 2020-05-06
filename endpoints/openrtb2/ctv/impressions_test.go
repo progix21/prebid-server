@@ -1,11 +1,10 @@
 package ctv
 
 import (
-	"io/ioutil"
-	"log"
 	"testing"
 
 	"github.com/PubMatic-OpenWrap/prebid-server/openrtb_ext"
+	"github.com/stretchr/testify/assert"
 )
 
 type TestAdPod struct {
@@ -30,26 +29,12 @@ type Expected struct {
 	output [][2]int64
 }
 
-var debugOn = true
-
-func TestIsMultipleOf(t *testing.T) {
-	if isMultipleOf(5, 6) {
-		t.Error("Expected not multiple of")
-	}
-
-}
-
-func TestClosedPodMinDuration(t *testing.T) {
-	//pod := newTestPod(6, 1, 1, 1, 1, 1)
-	pod := newTestPod(1, 90, 11, 15, 2, 8)
-	// multipleOf = 5
-	cfg, _ := getImpressions(pod.podMinDuration, pod.podMaxDuration, pod.vPod)
-	validateClosedMinDuration(t, cfg, 5)
-}
-
-func TestCase2(t *testing.T) {
-	pod := newTestPod(1, 90, 11, 15, 2, 8)
-	expected := Expected{
+var impressionsTests = []struct {
+	scenario string   // Testcase scenario
+	in       []int    // Testcase input
+	out      Expected // Testcase execpted output
+}{
+	{scenario: "TC2", in: []int{1, 90, 11, 15, 2, 8}, out: Expected{
 		impressionCount:       6,
 		freeTime:              0.0,
 		adSlotTimeInSec:       []int64{15, 15, 15, 15, 15, 15},
@@ -58,13 +43,8 @@ func TestCase2(t *testing.T) {
 		closedMaxDuration:     90,
 		closedSlotMinDuration: 15,
 		closedSlotMaxDuration: 15,
-	}
-	pod.test(t, expected)
-}
-
-func TestCase3(t *testing.T) {
-	pod := newTestPod(1, 90, 11, 15, 2, 4)
-	expected := Expected{
+	}},
+	{scenario: "TC3", in: []int{1, 90, 11, 15, 2, 4}, out: Expected{
 		impressionCount: 4,
 		freeTime:        30.0,
 		adSlotTimeInSec: []int64{15, 15, 15, 15},
@@ -74,13 +54,8 @@ func TestCase3(t *testing.T) {
 		closedMaxDuration:     90,
 		closedSlotMinDuration: 15,
 		closedSlotMaxDuration: 15,
-	}
-	pod.test(t, expected)
-}
-
-func TestCase4(t *testing.T) {
-	pod := newTestPod(1, 15, 1, 15, 1, 1)
-	expected := Expected{
+	}},
+	{scenario: "TC4", in: []int{1, 15, 1, 15, 1, 1}, out: Expected{
 		impressionCount: 1,
 		freeTime:        0.0,
 		adSlotTimeInSec: []int64{15},
@@ -90,13 +65,8 @@ func TestCase4(t *testing.T) {
 		closedMaxDuration:     15,
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 15,
-	}
-	pod.test(t, expected)
-}
-
-func TestCase5(t *testing.T) {
-	pod := newTestPod(1, 15, 1, 15, 1, 2)
-	expected := Expected{
+	}},
+	{scenario: "TC5", in: []int{1, 15, 1, 15, 1, 2}, out: Expected{
 		impressionCount: 2,
 		freeTime:        0.0,
 		adSlotTimeInSec: []int64{10, 5},
@@ -106,13 +76,8 @@ func TestCase5(t *testing.T) {
 		closedMaxDuration:     15,
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 15,
-	}
-	pod.test(t, expected)
-}
-
-func TestCase6(t *testing.T) {
-	pod := newTestPod(1, 90, 1, 15, 1, 8)
-	expected := Expected{
+	}},
+	{scenario: "TC6", in: []int{1, 90, 1, 15, 1, 8}, out: Expected{
 		impressionCount: 8,
 		freeTime:        0.0,
 		adSlotTimeInSec: []int64{15, 15, 10, 10, 10, 10, 10, 10},
@@ -122,13 +87,8 @@ func TestCase6(t *testing.T) {
 		closedMaxDuration:     90,
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 15,
-	}
-	pod.test(t, expected)
-}
-
-func TestCase7(t *testing.T) {
-	pod := newTestPod(15, 30, 8, 15, 1, 1)
-	expected := Expected{
+	}},
+	{scenario: "TC7", in: []int{15, 30, 8, 15, 1, 1}, out: Expected{
 		impressionCount: 1,
 		freeTime:        15.0,
 		adSlotTimeInSec: []int64{15},
@@ -138,13 +98,8 @@ func TestCase7(t *testing.T) {
 		closedMaxDuration:     30,
 		closedSlotMinDuration: 10,
 		closedSlotMaxDuration: 15,
-	}
-	pod.test(t, expected)
-}
-
-func TestCase8(t *testing.T) {
-	pod := newTestPod(35, 35, 10, 35, 3, 40)
-	expected := Expected{
+	}},
+	{scenario: "TC8", in: []int{35, 35, 10, 35, 3, 40}, out: Expected{
 		impressionCount: 3,
 		freeTime:        0.0,
 		adSlotTimeInSec: []int64{15, 10, 10},
@@ -154,15 +109,10 @@ func TestCase8(t *testing.T) {
 		closedMaxDuration:     35,
 		closedSlotMinDuration: 10,
 		closedSlotMaxDuration: 35,
-	}
-	pod.test(t, expected)
-}
-
-func TestCase9(t *testing.T) {
-	pod := newTestPod(35, 35, 10, 35, 6, 40)
-	expected := Expected{
+	}},
+	{scenario: "TC9", in: []int{35, 35, 10, 35, 6, 40}, out: Expected{
 		impressionCount: 0,
-		freeTime:        pod.podMaxDuration,
+		freeTime:        35,
 		adSlotTimeInSec: []int64{},
 		output:          [][2]int64{},
 
@@ -170,13 +120,8 @@ func TestCase9(t *testing.T) {
 		closedMaxDuration:     35,
 		closedSlotMinDuration: 10,
 		closedSlotMaxDuration: 35,
-	}
-	pod.test(t, expected)
-}
-
-func TestCase10(t *testing.T) {
-	pod := newTestPod(35, 65, 10, 35, 6, 40)
-	expected := Expected{
+	}},
+	{scenario: "TC10", in: []int{35, 65, 10, 35, 6, 40}, out: Expected{
 		impressionCount: 6,
 		freeTime:        0.0,
 		adSlotTimeInSec: []int64{15, 10, 10, 10, 10, 10},
@@ -186,15 +131,10 @@ func TestCase10(t *testing.T) {
 		closedMaxDuration:     65,
 		closedSlotMinDuration: 10,
 		closedSlotMaxDuration: 35,
-	}
-	pod.test(t, expected)
-}
-
-func TestCase11(t *testing.T) {
-	pod := newTestPod(35, 65, 9, 35, 7, 40)
-	expected := Expected{
+	}},
+	{scenario: "TC11", in: []int{35, 65, 9, 35, 7, 40}, out: Expected{
 		impressionCount: 0, //7,
-		freeTime:        pod.podMaxDuration,
+		freeTime:        65,
 		adSlotTimeInSec: []int64{}, // []int64{10, 10, 10, 10, 10, 10, 5},
 		output:          [][2]int64{},
 
@@ -202,13 +142,8 @@ func TestCase11(t *testing.T) {
 		closedMaxDuration:     65,
 		closedSlotMinDuration: 10,
 		closedSlotMaxDuration: 35,
-	}
-	pod.test(t, expected)
-}
-
-func TestCase12(t *testing.T) {
-	pod := newTestPod(100, 100, 10, 35, 6, 40)
-	expected := Expected{
+	}},
+	{scenario: "TC12", in: []int{100, 100, 10, 35, 6, 40}, out: Expected{
 		impressionCount: 10,
 		freeTime:        0.0,
 		adSlotTimeInSec: []int64{10, 10, 10, 10, 10, 10, 10, 10, 10, 10},
@@ -218,15 +153,10 @@ func TestCase12(t *testing.T) {
 		closedMaxDuration:     100,
 		closedSlotMinDuration: 10,
 		closedSlotMaxDuration: 35,
-	}
-	pod.test(t, expected)
-}
-
-func TestCase13(t *testing.T) {
-	pod := newTestPod(60, 60, 5, 9, 1, 6)
-	expected := Expected{
+	}},
+	{scenario: "TC13", in: []int{60, 60, 5, 9, 1, 6}, out: Expected{
 		impressionCount: 0,
-		freeTime:        pod.podMaxDuration,
+		freeTime:        60,
 		adSlotTimeInSec: []int64{},
 		output:          [][2]int64{},
 
@@ -234,13 +164,8 @@ func TestCase13(t *testing.T) {
 		closedMaxDuration:     60,
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 5,
-	}
-	pod.test(t, expected)
-}
-
-func TestCase14(t *testing.T) {
-	pod := newTestPod(30, 60, 5, 9, 1, 6)
-	expected := Expected{
+	}},
+	{scenario: "TC14", in: []int{30, 60, 5, 9, 1, 6}, out: Expected{
 		impressionCount: 6,
 		freeTime:        30,
 		adSlotTimeInSec: []int64{5, 5, 5, 5, 5, 5},
@@ -250,17 +175,10 @@ func TestCase14(t *testing.T) {
 		closedMaxDuration:     60,
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 5,
-	}
-
-	pod.test(t, expected)
-
-}
-
-func TestCase15(t *testing.T) {
-	pod := newTestPod(30, 60, 5, 9, 1, 5)
-	expected := Expected{
+	}},
+	{scenario: "TC15", in: []int{30, 60, 5, 9, 1, 5}, out: Expected{
 		impressionCount: 0,
-		freeTime:        pod.podMaxDuration,
+		freeTime:        60,
 		adSlotTimeInSec: []int64{},
 		output:          [][2]int64{},
 
@@ -268,13 +186,8 @@ func TestCase15(t *testing.T) {
 		closedMaxDuration:     60,
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 5,
-	}
-	pod.test(t, expected)
-}
-
-func TestCase16(t *testing.T) {
-	pod := newTestPod(126, 126, 1, 12, 7, 13)
-	expected := Expected{
+	}},
+	{scenario: "TC16", in: []int{126, 126, 1, 12, 7, 13}, out: Expected{
 		impressionCount: 13,
 		freeTime:        0,
 		adSlotTimeInSec: []int64{10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 6},
@@ -284,13 +197,8 @@ func TestCase16(t *testing.T) {
 		closedMaxDuration:     125,
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 10,
-	}
-	pod.test(t, expected)
-}
-
-func TestCase17(t *testing.T) {
-	pod := newTestPod(127, 128, 1, 12, 7, 13)
-	expected := Expected{
+	}},
+	{scenario: "TC17", in: []int{127, 128, 1, 12, 7, 13}, out: Expected{
 		impressionCount: 13,
 		freeTime:        0,
 		adSlotTimeInSec: []int64{10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 8},
@@ -300,15 +208,10 @@ func TestCase17(t *testing.T) {
 		closedMaxDuration:     125,
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 10,
-	}
-	pod.test(t, expected)
-}
-
-func TestCase18(t *testing.T) {
-	pod := newTestPod(125, 125, 4, 4, 1, 1)
-	expected := Expected{
+	}},
+	{scenario: "TC18", in: []int{125, 125, 4, 4, 1, 1}, out: Expected{
 		impressionCount: 0,
-		freeTime:        pod.podMaxDuration,
+		freeTime:        125,
 		adSlotTimeInSec: []int64{},
 		output:          [][2]int64{},
 
@@ -316,15 +219,10 @@ func TestCase18(t *testing.T) {
 		closedMaxDuration:     125,
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 4,
-	}
-	pod.test(t, expected)
-}
-
-func TestCase19(t *testing.T) {
-	pod := newTestPod(90, 90, 7, 9, 3, 5)
-	expected := Expected{
+	}},
+	{scenario: "TC19", in: []int{90, 90, 7, 9, 3, 5}, out: Expected{
 		impressionCount: 0,
-		freeTime:        pod.podMaxDuration,
+		freeTime:        90,
 		adSlotTimeInSec: []int64{}, // 90 -25 = 65
 		output:          [][2]int64{},
 
@@ -332,13 +230,8 @@ func TestCase19(t *testing.T) {
 		closedMaxDuration:     90,
 		closedSlotMinDuration: 10,
 		closedSlotMaxDuration: 5,
-	}
-	pod.test(t, expected)
-}
-
-func TestCase20(t *testing.T) {
-	pod := newTestPod(90, 90, 5, 10, 1, 11)
-	expected := Expected{
+	}},
+	{scenario: "TC20", in: []int{90, 90, 5, 10, 1, 11}, out: Expected{
 		impressionCount: 9,
 		freeTime:        0,
 		adSlotTimeInSec: []int64{10, 10, 10, 10, 10, 10, 10, 10, 10},
@@ -348,13 +241,8 @@ func TestCase20(t *testing.T) {
 		closedMaxDuration:     90,
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 10,
-	}
-	pod.test(t, expected)
-}
-
-func TestCase23(t *testing.T) {
-	pod := newTestPod(118, 124, 4, 17, 6, 15)
-	expected := Expected{
+	}},
+	{scenario: "TC23", in: []int{118, 124, 4, 17, 6, 15}, out: Expected{
 		impressionCount: 12,
 		freeTime:        0,
 		adSlotTimeInSec: []int64{14, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10},
@@ -364,16 +252,8 @@ func TestCase23(t *testing.T) {
 		closedMaxDuration:     120,
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 15,
-
-		// 24,8  => 24 => 15
-		// 120 / 15 = 8 => 10
-	}
-	pod.test(t, expected)
-}
-
-func TestCase24(t *testing.T) {
-	pod := newTestPod(134, 134, 60, 90, 2, 3)
-	expected := Expected{
+	}},
+	{scenario: "TC24", in: []int{134, 134, 60, 90, 2, 3}, out: Expected{
 		impressionCount: 2,
 		freeTime:        0,
 		adSlotTimeInSec: []int64{69, 65},
@@ -383,14 +263,8 @@ func TestCase24(t *testing.T) {
 		closedMaxDuration:     135,
 		closedSlotMinDuration: 60,
 		closedSlotMaxDuration: 90,
-	}
-	pod.test(t, expected)
-}
-
-// Test case when only video min and max duration is passed
-func TestCase26(t *testing.T) {
-	pod := newTestPod(90, 90, 45, 45, 2, 3)
-	expected := Expected{
+	}},
+	{scenario: "TC26", in: []int{90, 90, 45, 45, 2, 3}, out: Expected{
 		impressionCount:       2,
 		freeTime:              0,
 		adSlotTimeInSec:       []int64{45, 45},
@@ -399,13 +273,8 @@ func TestCase26(t *testing.T) {
 		closedMaxDuration:     90,
 		closedSlotMinDuration: 45,
 		closedSlotMaxDuration: 45,
-	}
-	pod.test(t, expected)
-}
-
-func TestCase27(t *testing.T) {
-	pod := newTestPod(5, 90, 2, 45, 2, 3)
-	expected := Expected{
+	}},
+	{scenario: "TC27", in: []int{5, 90, 2, 45, 2, 3}, out: Expected{
 		impressionCount:       3,
 		freeTime:              0,
 		adSlotTimeInSec:       []int64{30, 30, 30},
@@ -414,13 +283,8 @@ func TestCase27(t *testing.T) {
 		closedMaxDuration:     90,
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 45,
-	}
-	pod.test(t, expected)
-}
-
-func TestCase28(t *testing.T) {
-	pod := newTestPod(5, 180, 2, 90, 2, 6)
-	expected := Expected{
+	}},
+	{scenario: "TC28", in: []int{5, 180, 2, 90, 2, 6}, out: Expected{
 		impressionCount:       6,
 		freeTime:              0,
 		adSlotTimeInSec:       []int64{30, 30, 30, 30, 30, 30},
@@ -429,13 +293,8 @@ func TestCase28(t *testing.T) {
 		closedMaxDuration:     180,
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 90,
-	}
-	pod.test(t, expected)
-}
-
-func TestCase29(t *testing.T) {
-	pod := newTestPod(5, 65, 2, 35, 2, 3)
-	expected := Expected{
+	}},
+	{scenario: "TC29", in: []int{5, 65, 2, 35, 2, 3}, out: Expected{
 		impressionCount: 3,
 		freeTime:        0,
 		adSlotTimeInSec: []int64{25, 20, 20},
@@ -445,135 +304,79 @@ func TestCase29(t *testing.T) {
 		closedMaxDuration:     65,
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 35,
-	}
-	pod.test(t, expected)
+	}},
 }
 
-func (p TestAdPod) test(t *testing.T, expected Expected) {
-	log.SetOutput(ioutil.Discard)
-	pod, _ := getImpressions(p.podMinDuration, p.podMaxDuration, p.vPod)
-	log.Println("")
-	validateImpressionCount(t, pod, expected.impressionCount)
-	validateTimeForEachAdSlot(t, pod, expected.adSlotTimeInSec)
-	validateFreeTime(t, pod, expected.freeTime)
-	// validate closed bounds
-	validateClosedMinDuration(t, pod, expected.closedMinDuration)
-	validateClosedMaxDuration(t, pod, expected.closedMaxDuration)
-	validateClosedSlotMinDuration(t, pod, expected.closedSlotMinDuration)
-	validateClosedSlotMaxDuration(t, pod, expected.closedSlotMaxDuration)
-	validate2dArrayOutput(t, pod, expected.output)
+func TestGetImpressions(t *testing.T) {
+	for _, impTest := range impressionsTests {
+		t.Run(impTest.scenario, func(t *testing.T) {
+			p := newTestPod(int64(impTest.in[0]), int64(impTest.in[1]), impTest.in[2], impTest.in[3], impTest.in[4], impTest.in[5])
+			cfg, _ := getImpressions(p.podMinDuration, p.podMaxDuration, p.vPod)
+			expected := impTest.out
+
+			validateImpressionCount(t, cfg, expected.impressionCount)
+			validateTimeForEachAdSlot(t, cfg, expected.adSlotTimeInSec)
+			validateFreeTime(t, cfg, expected.freeTime)
+			// // validate closed bounds
+			validateClosedMinDuration(t, cfg, expected.closedMinDuration)
+			validateClosedMaxDuration(t, cfg, expected.closedMaxDuration)
+			validateClosedSlotMinDuration(t, cfg, expected.closedSlotMinDuration)
+			validateClosedSlotMaxDuration(t, cfg, expected.closedSlotMaxDuration)
+			validate2dArrayOutput(t, cfg, expected.output)
+		})
+	}
+}
+
+/* Benchmarking Tests */
+func BenchmarkGetImpressions(b *testing.B) {
+	for _, impTest := range impressionsTests {
+		b.Run(impTest.scenario, func(b *testing.B) {
+			p := newTestPod(int64(impTest.in[0]), int64(impTest.in[1]), impTest.in[2], impTest.in[3], impTest.in[4], impTest.in[5])
+			for n := 0; n < b.N; n++ {
+				getImpressions(p.podMinDuration, p.podMaxDuration, p.vPod)
+			}
+		})
+	}
 }
 
 func validate2dArrayOutput(t *testing.T, pod adPodConfig, expectedOutput [][2]int64) {
-	if len(pod.Slots) != len(expectedOutput) {
-		t.Errorf("Expecte Number of Ad Slots %v  . But Found %v", len(expectedOutput), len(pod.Slots))
-		return
-	} else {
-		if debugOn {
-			log.Printf("** Got Number of Ad Slots = %v\n", len(pod.Slots))
-		}
-	}
-
+	assert.Equal(t, len(expectedOutput), len(pod.Slots), "Expected Number of Ad Slots %v  . But Found %v", len(expectedOutput), len(pod.Slots))
 	// check each output
 	for i := 0; i < len(expectedOutput); i++ {
-
-		if expectedOutput[i][0] != pod.Slots[i][0] {
-			t.Errorf("Expected Min Duration for Ad Slot %v = %v  . But Found %v", i, expectedOutput[i][0], pod.Slots[i][0])
-		} else {
-			if debugOn {
-				log.Printf("** Got Min Duration for Ad Slot %v = %v \n", i, pod.Slots[i][0])
-			}
-		}
-
-		if expectedOutput[i][1] != pod.Slots[i][1] {
-			t.Errorf("Expected Min Duration for Ad Slot %v = %v  . But Found %v", i, expectedOutput[i][1], pod.Slots[i][1])
-		} else {
-			if debugOn {
-				log.Printf("** Got Min Duration for Ad Slot %v = %v \n", i, pod.Slots[i][1])
-			}
-		}
-
+		assert.Equal(t, expectedOutput[i][0], pod.Slots[i][0], "Expected Min Duration for Ad Slot %v = %v  . But Found %v", i, expectedOutput[i][0], pod.Slots[i][0])
+		assert.Equal(t, expectedOutput[i][1], pod.Slots[i][1], "Expected Min Duration for Ad Slot %v = %v  . But Found %v", i, expectedOutput[i][1], pod.Slots[i][1])
 	}
 }
 
 func validateTimeForEachAdSlot(t *testing.T, pod adPodConfig, expectedAdSlotTimeInSec []int64) {
-	if len(pod.Slots) != len(expectedAdSlotTimeInSec) {
-		t.Errorf("Expected Number of Ad Slots %v  . But Found %v", len(expectedAdSlotTimeInSec), len(pod.Slots))
-
-	} else {
-		if debugOn {
-			log.Printf("** Got Number of Ad Slots = %v\n", len(pod.Slots))
-		}
-	}
+	assert.Equal(t, len(expectedAdSlotTimeInSec), len(pod.Slots), "Expected Number of Ad Slots %v  . But Found %v", len(expectedAdSlotTimeInSec), len(pod.Slots))
 	for i := 0; i < len(pod.Slots); i++ {
-		if pod.Slots[i][1] != expectedAdSlotTimeInSec[i] {
-			t.Errorf("Expected Slot time for Ad Slot %v[1] = %v . But Found %v", i, expectedAdSlotTimeInSec[i], (pod.Slots)[i][1])
-		} else {
-			if debugOn {
-				log.Printf("** Got Expected Slot time for Ad Slot = %v\n", (pod.Slots)[i])
-			}
-		}
+		assert.Equal(t, expectedAdSlotTimeInSec[i], pod.Slots[i][1], "Expected Slot time for Ad Slot %v[1] = %v . But Found %v", i, expectedAdSlotTimeInSec[i], (pod.Slots)[i][1])
 	}
 }
 
 func validateImpressionCount(t *testing.T, pod adPodConfig, expectedImpressionCount int) {
-	if !(len(pod.Slots) == expectedImpressionCount) {
-		t.Errorf("Expected impression count = %v . But Found %v", expectedImpressionCount, len(pod.Slots))
-	} else {
-		if debugOn {
-			log.Printf("** Got Expected impression count = %v\n", len(pod.Slots))
-		}
-	}
+	assert.Equal(t, expectedImpressionCount, len(pod.Slots), "Expected impression count = %v . But Found %v", expectedImpressionCount, len(pod.Slots))
 }
 
 func validateFreeTime(t *testing.T, pod adPodConfig, expectedFreeTime int64) {
-	if pod.freeTime != expectedFreeTime {
-		t.Errorf("Expected Free Time = %v . But Found %v", expectedFreeTime, pod.freeTime)
-	} else {
-		if debugOn {
-			log.Printf("** Got Expected Free Time = %v\n", pod.freeTime)
-		}
-	}
+	assert.Equal(t, expectedFreeTime, pod.freeTime, "Expected Free Time = %v . But Found %v", expectedFreeTime, pod.freeTime)
 }
 
 func validateClosedMinDuration(t *testing.T, pod adPodConfig, expectedClosedMinDuration int64) {
-	if pod.podMinDuration != expectedClosedMinDuration {
-		t.Errorf("Expected closedMinDuration= %v . But Found %v", expectedClosedMinDuration, pod.podMinDuration)
-	} else {
-		if debugOn {
-			log.Printf("** Got Expected closedMinDuration = %v\n", pod.podMinDuration)
-		}
-	}
+	assert.Equal(t, expectedClosedMinDuration, pod.podMinDuration, "Expected closedMinDuration= %v . But Found %v", expectedClosedMinDuration, pod.podMinDuration)
 }
 
 func validateClosedMaxDuration(t *testing.T, pod adPodConfig, expectedClosedMaxDuration int64) {
-	if pod.podMaxDuration != expectedClosedMaxDuration {
-		t.Errorf("Expected closedMinDuration= %v . But Found %v", expectedClosedMaxDuration, pod.podMaxDuration)
-	} else {
-		if debugOn {
-			log.Printf("** Got Expected closedMinDuration = %v\n", pod.podMaxDuration)
-		}
-	}
+	assert.Equal(t, expectedClosedMaxDuration, pod.podMaxDuration, "Expected closedMinDuration= %v . But Found %v", expectedClosedMaxDuration, pod.podMaxDuration)
 }
 
 func validateClosedSlotMinDuration(t *testing.T, pod adPodConfig, expectedClosedSlotMinDuration int64) {
-	if pod.slotMinDuration != expectedClosedSlotMinDuration {
-		t.Errorf("Expected closedSlotMinDuration= %v . But Found %v", expectedClosedSlotMinDuration, pod.slotMinDuration)
-	} else {
-		if debugOn {
-			log.Printf("** Got Expected closedSlotMinDuration = %v\n", pod.slotMinDuration)
-		}
-	}
+	assert.Equal(t, expectedClosedSlotMinDuration, pod.slotMinDuration, "Expected closedSlotMinDuration= %v . But Found %v", expectedClosedSlotMinDuration, pod.slotMinDuration)
 }
 
 func validateClosedSlotMaxDuration(t *testing.T, pod adPodConfig, expectedClosedSlotMaxDuration int64) {
-	if pod.slotMaxDuration != expectedClosedSlotMaxDuration {
-		t.Errorf("Expected closedSlotMinDuration= %v . But Found %v", expectedClosedSlotMaxDuration, pod.slotMaxDuration)
-	} else {
-		if debugOn {
-			log.Printf("** Got Expected closedSlotMinDuration = %v\n", pod.slotMaxDuration)
-		}
-	}
+	assert.Equal(t, expectedClosedSlotMaxDuration, pod.slotMaxDuration, "Expected closedSlotMinDuration= %v . But Found %v", expectedClosedSlotMaxDuration, pod.slotMaxDuration)
 }
 
 func newTestPod(podMinDuration, podMaxDuration int64, slotMinDuration, slotMaxDuration, minAds, maxAds int) *TestAdPod {
@@ -590,12 +393,4 @@ func newTestPod(podMinDuration, podMaxDuration int64, slotMinDuration, slotMaxDu
 	testPod.podMinDuration = podMinDuration
 	testPod.podMaxDuration = podMaxDuration
 	return &testPod
-}
-
-/* Benchmarking Tests */
-func BenchmarkTestCase2(b *testing.B) {
-	p := newTestPod(1, 90, 11, 15, 2, 8)
-	for n := 0; n < b.N; n++ {
-		getImpressions(p.podMinDuration, p.podMaxDuration, p.vPod)
-	}
 }

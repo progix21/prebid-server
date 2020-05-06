@@ -15,6 +15,7 @@ import (
 	"github.com/PubMatic-OpenWrap/openrtb"
 	"github.com/PubMatic-OpenWrap/prebid-server/analytics"
 	"github.com/PubMatic-OpenWrap/prebid-server/config"
+	"github.com/PubMatic-OpenWrap/prebid-server/endpoints/openrtb2/ctv"
 	"github.com/PubMatic-OpenWrap/prebid-server/exchange"
 	"github.com/PubMatic-OpenWrap/prebid-server/openrtb_ext"
 	"github.com/PubMatic-OpenWrap/prebid-server/pbsmetrics"
@@ -372,24 +373,18 @@ func (deps *ctvEndpointDeps) getAllAdPodImpsConfigs() {
 
 //getAdPodImpsConfigs will return number of impressions configurations within adpod
 func getAdPodImpsConfigs(imp *openrtb.Imp, adpod *openrtb_ext.VideoAdPod) []*ImpAdPodConfig {
-	impRanges := getImpressions(imp.Video.MinDuration, imp.Video.MaxDuration, adpod)
+	impRanges := ctv.GetImpressions(imp.Video.MinDuration, imp.Video.MaxDuration, *adpod)
 
 	config := make([]*ImpAdPodConfig, len(impRanges))
 	for i, value := range impRanges {
 		config[i] = &ImpAdPodConfig{
 			ImpID:          fmt.Sprintf("%s_%d", imp.ID, i+1),
-			MinDuration:    int64(value[0]),
-			MaxDuration:    int64(value[1]),
+			MinDuration:    value[0],
+			MaxDuration:    value[1],
 			SequenceNumber: int8(i + 1), /* Must be starting with 1 */
 		}
 	}
 	return config[:]
-}
-
-//getImpressions will create number of impressions based on adpod configurations
-func getImpressions(podMinDuration, podMaxDuration int64, adpod *openrtb_ext.VideoAdPod) (imps [][2]int) {
-	_, imps = ctv.getImpressions(podMinDuration, podMaxDuration, adpod)
-	return imps
 }
 
 //createImpressions will create multiple impressions based on adpod configurations
