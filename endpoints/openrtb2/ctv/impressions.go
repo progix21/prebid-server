@@ -8,10 +8,10 @@ import (
 	"github.com/PubMatic-OpenWrap/prebid-server/openrtb_ext"
 )
 
-// AdPodConfig contains Pod Minimum Duration, Pod Maximum Duration, Slot Minimum Duration and Slot Maximum Duration
+// adPodConfig contains Pod Minimum Duration, Pod Maximum Duration, Slot Minimum Duration and Slot Maximum Duration
 // It holds additional attributes required by this algorithm for  internal computation.
 // 	It contains Slots attribute. This  attribute holds the output of this algorithm
-type AdPodConfig struct {
+type adPodConfig struct {
 	MinAds          int64 // Minimum number of Ads / Slots allowed inside Ad Pod
 	MaxAds          int64 // Maximum number of Ads / Slots allowed inside Ad Pod.
 	SlotMinDuration int64 // Minimum duration (in seconds) for each Ad Slot inside Ad Pod. It is not original value from request. It holds the value closed to original value and multiples of X.
@@ -32,10 +32,10 @@ type AdPodConfig struct {
 // Observed that typically video impression contains contains minimum and maximum duration in multiples of  5
 var multipleOf = int64(5)
 
-// Constucts the AdPodConfig object from openrtb_ext.VideoAdPod
+// Constucts the adPodConfig object from openrtb_ext.VideoAdPod
 // It computes durations for Ad Slot and Ad Pod in multiple of X
-func init0(podMinDuration, podMaxDuration int64, vPod openrtb_ext.VideoAdPod) AdPodConfig {
-	config := AdPodConfig{}
+func init0(podMinDuration, podMaxDuration int64, vPod openrtb_ext.VideoAdPod) adPodConfig {
+	config := adPodConfig{}
 	config.RequestedPodMinDuration = podMinDuration
 	config.RequestedPodMaxDuration = podMaxDuration
 	config.RequestedSlotMinDuration = int64(*vPod.MinDuration)
@@ -61,7 +61,7 @@ func init0(podMinDuration, podMaxDuration int64, vPod openrtb_ext.VideoAdPod) Ad
 // Minimum Duratiuon can contain either RequestedSlotMinDuration or Duration computed by algorithm for the Ad Slot
 // Maximum Duration only contains Duration computed by algorithm for the Ad Slot
 // podMinDuration - Minimum duration of Pod, podMaxDuration Maximum duration of Pod, vPod Video Pod Object
-func getImpressions(podMinDuration, podMaxDuration int64, vPod openrtb_ext.VideoAdPod) (AdPodConfig, [][2]int64) {
+func getImpressions(podMinDuration, podMaxDuration int64, vPod openrtb_ext.VideoAdPod) (adPodConfig, [][2]int64) {
 
 	cfg := init0(podMinDuration, podMaxDuration, vPod)
 	totalAds := computeTotalAds(cfg)
@@ -99,7 +99,7 @@ func getImpressions(podMinDuration, podMaxDuration int64, vPod openrtb_ext.Video
 }
 
 // Returns total number of Ad Slots/ impressions that the Ad Pod can have
-func computeTotalAds(cfg AdPodConfig) int64 {
+func computeTotalAds(cfg adPodConfig) int64 {
 	maxAds := cfg.PodMaxDuration / cfg.SlotMaxDuration
 	minAds := cfg.PodMaxDuration / cfg.SlotMinDuration
 
@@ -117,7 +117,7 @@ func computeTotalAds(cfg AdPodConfig) int64 {
 // Returns duration in seconds that can be allocated to each Ad Slot
 // Accepts cfg containing algorithm configurations and totalAds containing Total number of
 // Ad Slots / Impressions that the Ad Pod can have.
-func computeTimeForEachAdSlot(cfg AdPodConfig, totalAds int64) int64 {
+func computeTimeForEachAdSlot(cfg adPodConfig, totalAds int64) int64 {
 	// Compute time for each ad
 	timeForEachSlot := cfg.PodMaxDuration / totalAds
 
@@ -163,7 +163,7 @@ func computeTimeLeastValue(time int64) int64 {
 //  3. Ensures  Minimum Pod duration <= TotalSlotTime <= Maximum Pod Duration
 // if  any validation fails it removes all the alloated slots and  makes is of size 0
 // and sets the FreeTime value as RequestedPodMaxDuration
-func (config *AdPodConfig) validateSlots() {
+func (config *adPodConfig) validateSlots() {
 
 	// default return value if validation fails
 	emptySlots := make([][2]int64, 0)
@@ -231,7 +231,7 @@ func (config *AdPodConfig) validateSlots() {
 //  4. Keeps track of TotalSlotDuration when each new time is added to the Ad Slot
 //  5. Keeps track of difference between computed PodMaxDuration and RequestedPodMaxDuration (TestCase #16) and used in step #2 above
 // Returns argument 1 indicating total time adusted, argument 2 whether all slots are full of duration capacity
-func (config AdPodConfig) addTime(timeForEachSlot int64) (int64, bool) {
+func (config adPodConfig) addTime(timeForEachSlot int64) (int64, bool) {
 	time := int64(0)
 
 	// iterate over each ad
