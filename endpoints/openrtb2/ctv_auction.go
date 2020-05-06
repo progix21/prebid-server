@@ -388,14 +388,8 @@ func getAdPodImpsConfigs(imp *openrtb.Imp, adpod *openrtb_ext.VideoAdPod) []*Imp
 
 //getImpressions will create number of impressions based on adpod configurations
 func getImpressions(podMinDuration, podMaxDuration int64, adpod *openrtb_ext.VideoAdPod) (imps [][2]int) {
-	max := *adpod.MaxAds
-	if max > 2 {
-		max = 2
-	}
-	for i := 0; i < *adpod.MaxAds; i++ {
-		imps = append(imps, [2]int{*adpod.MinDuration, *adpod.MaxDuration})
-	}
-	return imps[:]
+	imps = getImpressions(podMinDuration, podMaxDuration, adpod)
+	return imps
 }
 
 //createImpressions will create multiple impressions based on adpod configurations

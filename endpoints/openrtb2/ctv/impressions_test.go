@@ -1,7 +1,8 @@
 package ctv
 
 import (
-	"fmt"
+	"io/ioutil"
+	"log"
 	"testing"
 
 	"github.com/PubMatic-OpenWrap/prebid-server/openrtb_ext"
@@ -449,8 +450,9 @@ func TestCase29(t *testing.T) {
 }
 
 func (p TestAdPod) test(t *testing.T, expected Expected) {
+	log.SetOutput(ioutil.Discard)
 	pod, _ := getImpressions(p.podMinDuration, p.podMaxDuration, p.vPod)
-	fmt.Println("")
+	log.Println("")
 	validateImpressionCount(t, pod, expected.impressionCount)
 	validateTimeForEachAdSlot(t, pod, expected.adSlotTimeInSec)
 	validateFreeTime(t, pod, expected.freeTime)
@@ -468,7 +470,7 @@ func validate2dArrayOutput(t *testing.T, pod AdPodConfig, expectedOutput [][2]in
 		return
 	} else {
 		if debugOn {
-			fmt.Printf("** Got Number of Ad Slots = %v\n", len(pod.Slots))
+			log.Printf("** Got Number of Ad Slots = %v\n", len(pod.Slots))
 		}
 	}
 
@@ -479,7 +481,7 @@ func validate2dArrayOutput(t *testing.T, pod AdPodConfig, expectedOutput [][2]in
 			t.Errorf("Expected Min Duration for Ad Slot %v = %v  . But Found %v", i, expectedOutput[i][0], pod.Slots[i][0])
 		} else {
 			if debugOn {
-				fmt.Printf("** Got Min Duration for Ad Slot %v = %v \n", i, pod.Slots[i][0])
+				log.Printf("** Got Min Duration for Ad Slot %v = %v \n", i, pod.Slots[i][0])
 			}
 		}
 
@@ -487,7 +489,7 @@ func validate2dArrayOutput(t *testing.T, pod AdPodConfig, expectedOutput [][2]in
 			t.Errorf("Expected Min Duration for Ad Slot %v = %v  . But Found %v", i, expectedOutput[i][1], pod.Slots[i][1])
 		} else {
 			if debugOn {
-				fmt.Printf("** Got Min Duration for Ad Slot %v = %v \n", i, pod.Slots[i][1])
+				log.Printf("** Got Min Duration for Ad Slot %v = %v \n", i, pod.Slots[i][1])
 			}
 		}
 
@@ -500,7 +502,7 @@ func validateTimeForEachAdSlot(t *testing.T, pod AdPodConfig, expectedAdSlotTime
 
 	} else {
 		if debugOn {
-			fmt.Printf("** Got Number of Ad Slots = %v\n", len(pod.Slots))
+			log.Printf("** Got Number of Ad Slots = %v\n", len(pod.Slots))
 		}
 	}
 	for i := 0; i < len(pod.Slots); i++ {
@@ -508,7 +510,7 @@ func validateTimeForEachAdSlot(t *testing.T, pod AdPodConfig, expectedAdSlotTime
 			t.Errorf("Expected Slot time for Ad Slot %v[1] = %v . But Found %v", i, expectedAdSlotTimeInSec[i], (pod.Slots)[i][1])
 		} else {
 			if debugOn {
-				fmt.Printf("** Got Expected Slot time for Ad Slot = %v\n", (pod.Slots)[i])
+				log.Printf("** Got Expected Slot time for Ad Slot = %v\n", (pod.Slots)[i])
 			}
 		}
 	}
@@ -519,7 +521,7 @@ func validateImpressionCount(t *testing.T, pod AdPodConfig, expectedImpressionCo
 		t.Errorf("Expected impression count = %v . But Found %v", expectedImpressionCount, len(pod.Slots))
 	} else {
 		if debugOn {
-			fmt.Printf("** Got Expected impression count = %v\n", len(pod.Slots))
+			log.Printf("** Got Expected impression count = %v\n", len(pod.Slots))
 		}
 	}
 }
@@ -529,7 +531,7 @@ func validateFreeTime(t *testing.T, pod AdPodConfig, expectedFreeTime int64) {
 		t.Errorf("Expected Free Time = %v . But Found %v", expectedFreeTime, pod.FreeTime)
 	} else {
 		if debugOn {
-			fmt.Printf("** Got Expected Free Time = %v\n", pod.FreeTime)
+			log.Printf("** Got Expected Free Time = %v\n", pod.FreeTime)
 		}
 	}
 }
@@ -539,7 +541,7 @@ func validateClosedMinDuration(t *testing.T, pod AdPodConfig, expectedClosedMinD
 		t.Errorf("Expected closedMinDuration= %v . But Found %v", expectedClosedMinDuration, pod.PodMinDuration)
 	} else {
 		if debugOn {
-			fmt.Printf("** Got Expected closedMinDuration = %v\n", pod.PodMinDuration)
+			log.Printf("** Got Expected closedMinDuration = %v\n", pod.PodMinDuration)
 		}
 	}
 }
@@ -549,7 +551,7 @@ func validateClosedMaxDuration(t *testing.T, pod AdPodConfig, expectedClosedMaxD
 		t.Errorf("Expected closedMinDuration= %v . But Found %v", expectedClosedMaxDuration, pod.PodMaxDuration)
 	} else {
 		if debugOn {
-			fmt.Printf("** Got Expected closedMinDuration = %v\n", pod.PodMaxDuration)
+			log.Printf("** Got Expected closedMinDuration = %v\n", pod.PodMaxDuration)
 		}
 	}
 }
@@ -559,7 +561,7 @@ func validateClosedSlotMinDuration(t *testing.T, pod AdPodConfig, expectedClosed
 		t.Errorf("Expected closedSlotMinDuration= %v . But Found %v", expectedClosedSlotMinDuration, pod.SlotMinDuration)
 	} else {
 		if debugOn {
-			fmt.Printf("** Got Expected closedSlotMinDuration = %v\n", pod.SlotMinDuration)
+			log.Printf("** Got Expected closedSlotMinDuration = %v\n", pod.SlotMinDuration)
 		}
 	}
 }
@@ -569,7 +571,7 @@ func validateClosedSlotMaxDuration(t *testing.T, pod AdPodConfig, expectedClosed
 		t.Errorf("Expected closedSlotMinDuration= %v . But Found %v", expectedClosedSlotMaxDuration, pod.SlotMaxDuration)
 	} else {
 		if debugOn {
-			fmt.Printf("** Got Expected closedSlotMinDuration = %v\n", pod.SlotMaxDuration)
+			log.Printf("** Got Expected closedSlotMinDuration = %v\n", pod.SlotMaxDuration)
 		}
 	}
 }
@@ -588,4 +590,12 @@ func newTestPod(podMinDuration, podMaxDuration int64, slotMinDuration, slotMaxDu
 	testPod.podMinDuration = podMinDuration
 	testPod.podMaxDuration = podMaxDuration
 	return &testPod
+}
+
+/* Benchmarking Tests */
+func BenchmarkTestCase2(b *testing.B) {
+	p := newTestPod(1, 90, 11, 15, 2, 8)
+	for n := 0; n < b.N; n++ {
+		getImpressions(p.podMinDuration, p.podMaxDuration, p.vPod)
+	}
 }

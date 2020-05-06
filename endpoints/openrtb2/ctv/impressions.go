@@ -2,7 +2,6 @@
 package ctv
 
 import (
-	"fmt"
 	"log"
 	"math"
 
@@ -61,6 +60,7 @@ func init0(podMinDuration, podMaxDuration int64, vPod openrtb_ext.VideoAdPod) Ad
 // for each Ad Slot.
 // Minimum Duratiuon can contain either RequestedSlotMinDuration or Duration computed by algorithm for the Ad Slot
 // Maximum Duration only contains Duration computed by algorithm for the Ad Slot
+// podMinDuration - Minimum duration of Pod, podMaxDuration Maximum duration of Pod, vPod Video Pod Object
 func getImpressions(podMinDuration, podMaxDuration int64, vPod openrtb_ext.VideoAdPod) (AdPodConfig, [][2]int64) {
 
 	cfg := init0(podMinDuration, podMaxDuration, vPod)
@@ -176,7 +176,7 @@ func (config *AdPodConfig) validateSlots() {
 	emptySlotCount := 0
 	for index, slot := range config.Slots {
 		if slot[0] == 0 || slot[1] == 0 {
-			fmt.Printf("WARNING:Slot %v %v is having 0  duration\n", index, slot)
+			log.Printf("WARNING:Slot %v %v is having 0  duration\n", index, slot)
 			emptySlotCount++
 		}
 	}
@@ -194,21 +194,21 @@ func (config *AdPodConfig) validateSlots() {
 
 	returnEmptySlots := false
 	if int64(len(config.Slots)) < config.MinAds || int64(len(config.Slots)) > config.MaxAds {
-		fmt.Printf("ERROR: slotSize %v is either less than Min Ads (%v) or greater than Max Ads (%v)\n", len(config.Slots), config.MinAds, config.MaxAds)
+		log.Printf("ERROR: slotSize %v is either less than Min Ads (%v) or greater than Max Ads (%v)\n", len(config.Slots), config.MinAds, config.MaxAds)
 		returnEmptySlots = true
 	}
 
 	// ensure if min pod duration = max pod duration
 	// config.TotalSlotTime = pod duration
 	if config.RequestedPodMinDuration == config.RequestedPodMaxDuration && *config.TotalSlotTime != config.RequestedPodMaxDuration {
-		fmt.Printf("ERROR: Total Slot Duration %v sec is not matching with Total Pod Duration %v sec\n", *config.TotalSlotTime, config.RequestedPodMaxDuration)
+		log.Printf("ERROR: Total Slot Duration %v sec is not matching with Total Pod Duration %v sec\n", *config.TotalSlotTime, config.RequestedPodMaxDuration)
 		returnEmptySlots = true
 	}
 
 	// ensure slot duration lies between requested min pod duration and  requested max pod duration
 	// Testcase #15
 	if *config.TotalSlotTime < config.RequestedPodMinDuration || *config.TotalSlotTime > config.RequestedPodMaxDuration {
-		fmt.Printf("ERROR: Total Slot Duration %v sec is either less than Requested Pod Min Duration (%v sec) or greater than Requested  Pod Max Duration (%v sec)\n", *config.TotalSlotTime, config.RequestedPodMinDuration, config.RequestedPodMaxDuration)
+		log.Printf("ERROR: Total Slot Duration %v sec is either less than Requested Pod Min Duration (%v sec) or greater than Requested  Pod Max Duration (%v sec)\n", *config.TotalSlotTime, config.RequestedPodMinDuration, config.RequestedPodMaxDuration)
 		returnEmptySlots = true
 	}
 
