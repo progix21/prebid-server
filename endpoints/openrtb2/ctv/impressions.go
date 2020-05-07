@@ -132,10 +132,10 @@ func computeTotalAds(cfg adPodConfig) int64 {
 	maxAds := cfg.podMaxDuration / cfg.slotMaxDuration
 	minAds := cfg.podMaxDuration / cfg.slotMinDuration
 
-	log.Printf("Computed maxAds = %v , maxAds = %v\n", maxAds, minAds)
+	log.Printf("Computed minAds = %v , maxAds = %v\n", minAds, maxAds)
 
 	totalAds := max(minAds, maxAds)
-	log.Printf("Computed max(maxAds, maxAds) = totalAds = %v\n", totalAds)
+	log.Printf("Computed max(minAds, maxAds) = totalAds = %v\n", totalAds)
 
 	if totalAds < cfg.minAds {
 		totalAds = cfg.minAds

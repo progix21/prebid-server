@@ -356,6 +356,42 @@ var impressionsTests = []struct {
 		closedMaxDuration:     100,
 		closedSlotMinDuration: 30,
 		closedSlotMaxDuration: 40,
+	}}, {scenario: "TC36", in: []int{90, 90, 45, 45, 2, 5}, out: Expected{
+		impressionCount: 2,
+		freeTime:        0,
+		output:          [][2]int64{{45, 45}, {45, 45}},
+
+		closedMinDuration:     90,
+		closedMaxDuration:     90,
+		closedSlotMinDuration: 45,
+		closedSlotMaxDuration: 45,
+	}}, {scenario: "TC37", in: []int{10, 45, 20, 45, 2, 5}, out: Expected{
+		impressionCount: 2,
+		freeTime:        0,
+		output:          [][2]int64{{25, 25}, {20, 20}},
+
+		closedMinDuration:     10,
+		closedMaxDuration:     45,
+		closedSlotMinDuration: 20,
+		closedSlotMaxDuration: 45,
+	}}, {scenario: "TC38", in: []int{90, 90, 20, 45, 2, 5}, out: Expected{
+		impressionCount: 0,
+		freeTime:        0,
+		output:          [][2]int64{{25, 25}, {25, 25}, {20, 20}, {20, 20}},
+
+		closedMinDuration:     90,
+		closedMaxDuration:     90,
+		closedSlotMinDuration: 20,
+		closedSlotMaxDuration: 45,
+	}}, {scenario: "TC39", in: []int{60, 90, 20, 45, 2, 5}, out: Expected{
+		impressionCount: 4,
+		freeTime:        0,
+		output:          [][2]int64{{25, 25}, {25, 25}, {20, 20}, {20, 20}},
+
+		closedMinDuration:     60,
+		closedMaxDuration:     90,
+		closedSlotMinDuration: 20,
+		closedSlotMaxDuration: 45,
 	}},
 }
 
@@ -366,7 +402,7 @@ func TestGetImpressions(t *testing.T) {
 			cfg, _ := getImpressions(p.podMinDuration, p.podMaxDuration, p.vPod)
 			expected := impTest.out
 
-			// assert.Equal(t, expected.impressionCount, len(pod.Slots), "Expected impression count = %v . But Found %v", expectedImpressionCount, len(pod.Slots))
+			// assert.Equal(t, expected.impressionCount, len(cfg.Slots), "Expected impression count = %v . But Found %v", expectedImpressionCount, len(pod.Slots))
 			assert.Equal(t, expected.freeTime, cfg.freeTime, "Expected Free Time = %v . But Found %v", expected.freeTime, cfg.freeTime)
 			assert.Equal(t, expected.closedMinDuration, cfg.podMinDuration, "Expected closedMinDuration= %v . But Found %v", expected.closedMinDuration, cfg.podMinDuration)
 			assert.Equal(t, expected.closedMaxDuration, cfg.podMaxDuration, "Expected closedMinDuration= %v . But Found %v", expected.closedMaxDuration, cfg.podMaxDuration)
