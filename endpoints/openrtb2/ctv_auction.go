@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"sort"
 	"strconv"
@@ -63,9 +64,10 @@ type ImpData struct {
 //CTV Specific Endpoint
 type ctvEndpointDeps struct {
 	endpointDeps
-	request *openrtb.BidRequest
-	reqExt  openrtb_ext.ReqAdPodExt
-	impData []*ImpData
+	request    *openrtb.BidRequest
+	reqExt     openrtb_ext.ReqAdPodExt
+	impData    []*ImpData
+	impIndices map[string]int
 }
 
 //NewCTVEndpoint new ctv endpoint object
@@ -147,6 +149,8 @@ func (deps *ctvEndpointDeps) CTVAuctionEndpoint(w http.ResponseWriter, r *http.R
 
 	//Set Default Values
 	deps.setDefaultValues()
+	jsonlog("Extensions Request Extension", deps.reqExt)
+	jsonlog("Extensions ImpData", deps.impData)
 
 	//Validate CTV BidRequest
 	if err := deps.validateBidRequest(); err != nil {
@@ -154,8 +158,6 @@ func (deps *ctvEndpointDeps) CTVAuctionEndpoint(w http.ResponseWriter, r *http.R
 		writeError(errL, w, &labels)
 		return
 	}
-	jsonlog("Request Extension", deps.reqExt)
-	jsonlog("ImpData", deps.impData)
 
 	//Create New BidRequest
 	ctvReq := deps.createBidRequest(req)
@@ -247,7 +249,10 @@ func (deps *ctvEndpointDeps) CTVAuctionEndpoint(w http.ResponseWriter, r *http.R
 func (deps *ctvEndpointDeps) init(req *openrtb.BidRequest) {
 	deps.request = req
 	deps.impData = make([]*ImpData, len(req.Imp))
+	deps.impIndices = make(map[string]int, len(req.Imp))
+
 	for i := range req.Imp {
+		deps.impIndices[req.Imp[i].ID] = i
 		deps.impData[i] = &ImpData{}
 	}
 }
@@ -288,9 +293,11 @@ func (deps *ctvEndpointDeps) readVideoExtensions() (err []error) {
 
 func (deps *ctvEndpointDeps) readRequestExtension() (err []error) {
 	if len(deps.request.Ext) > 0 {
+
 		//TODO: use jsonparser library for get adpod and remove that key
 		extAdPod, jsonType, _, errL := jsonparser.Get(deps.request.Ext, keyAdPod)
-		if nil != err {
+
+		if nil != errL {
 			//parsing error
 			if jsonparser.NotExist != jsonType {
 				//assuming key not present
@@ -427,9 +434,6 @@ func newImpression(imp *openrtb.Imp, config *ImpAdPodConfig) *openrtb.Imp {
 
 //validateBidResponse
 func (deps *ctvEndpointDeps) validateBidResponse(req *openrtb.BidRequest, resp *openrtb.BidResponse) error {
-	//remove bids withoug cat and adomain
-	//remove bids without bid.id
-	//remove bids with price=0
 	return nil
 }
 
@@ -439,7 +443,21 @@ func (deps *ctvEndpointDeps) getBids(resp *openrtb.BidResponse) {
 
 	for _, seat := range resp.SeatBid {
 		for _, bid := range seat.Bid {
-			originalImpID, _ := decodeImpressionID(bid.ImpID)
+
+			if len(bid.ID) == 0 || bid.Price == 0 {
+				//filter invalid bids
+				continue
+			}
+
+			//remove bids withoug cat and adomain
+
+			originalImpID, sequenceNumber := decodeImpressionID(bid.ImpID)
+			index, ok := deps.impIndices[originalImpID]
+			if !ok || sequenceNumber <= 0 || sequenceNumber > len(deps.impData[index].Config) {
+				//filter bid; reason: impression id not found
+				continue
+			}
+
 			adpodBid, ok := result[originalImpID]
 			if !ok {
 				adpodBid = &AdPodBid{
@@ -569,7 +587,7 @@ func (deps *ctvEndpointDeps) getAdPodBid(adpod *AdPodBid) *Bid {
 	}
 
 	bid.ImpID = adpod.OriginalImpID
-	bid.AdM = *getAdPodBidCreative(adpod)
+	bid.AdM = *getAdPodBidCreative(deps.request.Imp[deps.impIndices[adpod.OriginalImpID]].Video, adpod)
 	bid.Price = getAdPodBidPrice(adpod)
 	bid.ADomain = getAdPodBidAdvertiserDomain(adpod)
 	bid.Cat = getAdPodBidCategories(adpod)
@@ -578,11 +596,12 @@ func (deps *ctvEndpointDeps) getAdPodBid(adpod *AdPodBid) *Bid {
 }
 
 //getAdPodBidCreative get commulative adpod bid details
-func getAdPodBidCreative(adpod *AdPodBid) *string {
+func getAdPodBidCreative(video *openrtb.Video, adpod *AdPodBid) *string {
 	doc := etree.NewDocument()
 	vast := doc.CreateElement("VAST")
-	vast.CreateAttr("version", "3.0")
 	sequenceNumber := 1
+	var version float64 = 2.0
+
 	for _, bid := range adpod.Bids {
 		adDoc := etree.NewDocument()
 		if err := adDoc.ReadFromString(bid.AdM); err != nil {
@@ -590,15 +609,26 @@ func getAdPodBidCreative(adpod *AdPodBid) *string {
 		}
 
 		vastTag := adDoc.SelectElement("VAST")
-		for _, ad := range vastTag.SelectElements("Ad") {
-			newAd := ad.Copy()
-			//newAd.CreateAttr("id", bid.OriginalImpID)
+
+		//Get Actual VAST Version
+		bidVASTVersion, _ := strconv.ParseFloat(vastTag.SelectAttrValue("version", "2.0"), 64)
+		version = math.Max(version, bidVASTVersion)
+
+		ads := vastTag.SelectElements("Ad")
+		if len(ads) > 0 {
+			newAd := ads[0].Copy()
 			//creative.AdId attribute needs to be updated
 			newAd.CreateAttr("sequence", fmt.Sprint(sequenceNumber))
 			vast.AddChild(newAd)
 			sequenceNumber++
 		}
 	}
+	//TODO: check it via constant
+	if int(version) > len(VASTVersionsStr) {
+		version = 4.0
+	}
+
+	vast.CreateAttr("version", VASTVersionsStr[int(version)])
 	bidAdM, err := doc.WriteToString()
 	if nil != err {
 		fmt.Printf("ERROR, %v", err.Error())
@@ -714,6 +744,20 @@ func (o *AdPodGenerator) GetAdPod() *AdPodBid {
 }
 
 /********************* Helper Functions *********************/
+//var ProtocolVASTVersionsMap = []int{0, 1, 2, 3, 1, 2, 3, 4, 4, 0, 0}
+var VASTVersionsStr = []string{"0", "1.0", "2.0", "3.0", "4.0"}
+
+//
+//func getVASTVersion(protocols []openrtb.Protocol) string {
+//	var version int = 1
+//
+//	for _, protocol := range protocols {
+//		if version < ProtocolVASTVersionsMap[protocol] {
+//			version = ProtocolVASTVersionsMap[protocol]
+//		}
+//	}
+//	return VASTVersionsStr[version]
+//}
 
 func decodeImpressionID(id string) (string, int) {
 	values := strings.Split(id, "_")

@@ -176,8 +176,7 @@ var impressionsTests = []struct {
 	{scenario: "TC16", in: []int{126, 126, 1, 12, 7, 13}, out: Expected{
 		impressionCount: 13,
 		freeTime:        0,
-		//output:          [][2]int64{{10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {1, 6}},
-		output: [][2]int64{{1, 11}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {5, 5}},
+		output:          [][2]int64{{1, 11}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {5, 5}},
 
 		closedMinDuration:     125,
 		closedMaxDuration:     125,
@@ -362,9 +361,6 @@ var impressionsTests = []struct {
 
 func TestGetImpressions(t *testing.T) {
 	for _, impTest := range impressionsTests {
-		if impTest.scenario != "TC16" {
-			continue
-		}
 		t.Run(impTest.scenario, func(t *testing.T) {
 			p := newTestPod(int64(impTest.in[0]), int64(impTest.in[1]), impTest.in[2], impTest.in[3], impTest.in[4], impTest.in[5])
 			cfg, _ := getImpressions(p.podMinDuration, p.podMaxDuration, p.vPod)
