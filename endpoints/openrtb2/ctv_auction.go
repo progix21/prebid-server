@@ -149,6 +149,8 @@ func (deps *ctvEndpointDeps) CTVAuctionEndpoint(w http.ResponseWriter, r *http.R
 
 	//Set Default Values
 	deps.setDefaultValues()
+	jsonlog("Extensions Request Extension", deps.reqExt)
+	jsonlog("Extensions ImpData", deps.impData)
 
 	//Validate CTV BidRequest
 	if err := deps.validateBidRequest(); err != nil {
@@ -156,8 +158,6 @@ func (deps *ctvEndpointDeps) CTVAuctionEndpoint(w http.ResponseWriter, r *http.R
 		writeError(errL, w, &labels)
 		return
 	}
-	jsonlog("Request Extension", deps.reqExt)
-	jsonlog("ImpData", deps.impData)
 
 	//Create New BidRequest
 	ctvReq := deps.createBidRequest(req)
@@ -293,9 +293,11 @@ func (deps *ctvEndpointDeps) readVideoExtensions() (err []error) {
 
 func (deps *ctvEndpointDeps) readRequestExtension() (err []error) {
 	if len(deps.request.Ext) > 0 {
+
 		//TODO: use jsonparser library for get adpod and remove that key
 		extAdPod, jsonType, _, errL := jsonparser.Get(deps.request.Ext, keyAdPod)
-		if nil != err {
+
+		if nil != errL {
 			//parsing error
 			if jsonparser.NotExist != jsonType {
 				//assuming key not present
