@@ -2,6 +2,7 @@ package openrtb_ext
 
 import (
 	"errors"
+	"strings"
 )
 
 var (
@@ -10,14 +11,14 @@ var (
 	errInvalidIABCategoryExclusionWindow          = errors.New("request.ext.adpod.excliabcatwindow must be postive number")
 	errInvalidAdvertiserExclusionWindow           = errors.New("request.ext.adpod.excladvwindow must be postive number")
 	errInvalidAdPodOffset                         = errors.New("request.imp.video.ext.offset must be postive number")
-	errInvalidMinAds                              = errors.New("request.imp.video.ext.adpod.minads must be positive number")
-	errInvalidMaxAds                              = errors.New("request.imp.video.ext.adpod.maxads must be positive number")
-	errInvalidMinDuration                         = errors.New("request.imp.video.ext.adpod.adminduration must be positive number")
-	errInvalidMaxDuration                         = errors.New("request.imp.video.ext.adpod.admaxduration must be positive number")
-	errInvalidAdvertiserExclusionPercent          = errors.New("request.imp.video.ext.adpod.excladv must be number between 0 and 100")
-	errInvalidIABCategoryExclusionPercent         = errors.New("request.imp.video.ext.adpod.excliabcat must be number between 0 and 100")
-	errInvalidMinMaxAds                           = errors.New("request.imp.video.ext.adpod.minads must be less than request.imp.video.ext.adpod.maxads")
-	errInvalidMinMaxDuration                      = errors.New("request.imp.video.ext.adpod.adminduration must be less than request.imp.video.ext.adpod.admaxduration")
+	errInvalidMinAds                              = errors.New("%key%.ext.adpod.minads must be positive number")
+	errInvalidMaxAds                              = errors.New("%key%.ext.adpod.maxads must be positive number")
+	errInvalidMinDuration                         = errors.New("%key%.ext.adpod.adminduration must be positive number")
+	errInvalidMaxDuration                         = errors.New("%key%.ext.adpod.admaxduration must be positive number")
+	errInvalidAdvertiserExclusionPercent          = errors.New("%key%.ext.adpod.excladv must be number between 0 and 100")
+	errInvalidIABCategoryExclusionPercent         = errors.New("%key%.ext.adpod.excliabcat must be number between 0 and 100")
+	errInvalidMinMaxAds                           = errors.New("%key%.ext.adpod.minads must be less than %key%.ext.adpod.maxads")
+	errInvalidMinMaxDuration                      = errors.New("%key%.ext.adpod.adminduration must be less than %key%.ext.adpod.admaxduration")
 )
 
 //VideoExtension structure to accept video specific more parameters like adpod
@@ -56,6 +57,15 @@ func (ext *ReqAdPodExt) UnmarshalJSON(b []byte) error {
 	return json.Unmarshal(b, ext)
 }
 */
+//getRequestAdPodError will return request level error message
+func getRequestAdPodError(err error) error {
+	return errors.New(strings.Replace(err.Error(), "%key%", "req.ext", -1))
+}
+
+//getVideoAdPodError will return video adpod level error message
+func getVideoAdPodError(err error) error {
+	return errors.New(strings.Replace(err.Error(), "%key%", "imp.video.ext", -1))
+}
 
 func getIntPtr(v int) *int {
 	return &v
@@ -71,11 +81,11 @@ func (pod *VideoAdPod) Validate() (err []error) {
 		err = append(err, errInvalidMaxAds)
 	}
 
-	if nil != pod.MinDuration && *pod.MinDuration <= 0 {
+	if nil != pod.MinDuration && *pod.MinDuration < 0 {
 		err = append(err, errInvalidMinDuration)
 	}
 
-	if nil != pod.MaxDuration && *pod.MaxDuration <= 0 {
+	if nil != pod.MaxDuration && *pod.MaxDuration < 0 {
 		err = append(err, errInvalidMaxDuration)
 	}
 
@@ -123,7 +133,9 @@ func (ext *ReqAdPodExt) Validate() (err []error) {
 	}
 
 	if errL := ext.VideoAdPod.Validate(); nil != errL {
-		err = append(err, errL...)
+		for _, errr := range errL {
+			err = append(err, getRequestAdPodError(errr))
+		}
 	}
 
 	return
@@ -137,7 +149,9 @@ func (ext *VideoExtension) Validate() (err []error) {
 
 	if nil != ext.AdPod {
 		if errL := ext.AdPod.Validate(); nil != errL {
-			err = append(err, errL...)
+			for _, errr := range errL {
+				err = append(err, getRequestAdPodError(errr))
+			}
 		}
 	}
 
