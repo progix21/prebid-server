@@ -176,7 +176,8 @@ var impressionsTests = []struct {
 	{scenario: "TC16", in: []int{126, 126, 1, 12, 7, 13}, out: Expected{
 		impressionCount: 13,
 		freeTime:        0,
-		output:          [][2]int64{{10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {1, 6}},
+		//output:          [][2]int64{{10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {1, 6}},
+		output: [][2]int64{{1, 11}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {5, 5}},
 
 		closedMinDuration:     125,
 		closedMaxDuration:     125,
@@ -201,7 +202,7 @@ var impressionsTests = []struct {
 		closedMinDuration:     125,
 		closedMaxDuration:     125,
 		closedSlotMinDuration: 5,
-		closedSlotMaxDuration: 4,
+		closedSlotMaxDuration: 5,
 	}},
 	{scenario: "TC19", in: []int{90, 90, 7, 9, 3, 5}, out: Expected{
 		impressionCount: 0,
@@ -223,6 +224,16 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 10,
 	}},
+	{scenario: "TC21", in: []int{2, 170, 3, 9, 4, 9}, out: Expected{
+		impressionCount: 9,
+		freeTime:        125,
+		output:          [][2]int64{{5, 5}, {5, 5}, {5, 5}, {5, 5}, {5, 5}, {5, 5}, {5, 5}, {5, 5}, {5, 5}},
+
+		closedMinDuration:     5,
+		closedMaxDuration:     170,
+		closedSlotMinDuration: 5,
+		closedSlotMaxDuration: 5,
+	}},
 	{scenario: "TC23", in: []int{118, 124, 4, 17, 6, 15}, out: Expected{
 		impressionCount: 12,
 		freeTime:        0,
@@ -236,12 +247,21 @@ var impressionsTests = []struct {
 	{scenario: "TC24", in: []int{134, 134, 60, 90, 2, 3}, out: Expected{
 		impressionCount: 2,
 		freeTime:        0,
-		output:          [][2]int64{{69, 69}, {65, 65}},
+		output:          [][2]int64{{60, 69}, {65, 65}},
 
 		closedMinDuration:     135,
 		closedMaxDuration:     135,
 		closedSlotMinDuration: 60,
 		closedSlotMaxDuration: 90,
+	}},
+	{scenario: "TC25", in: []int{88, 88, 1, 80, 2, 2}, out: Expected{
+		impressionCount:       2,
+		freeTime:              0,
+		output:                [][2]int64{{1, 68}, {20, 20}},
+		closedMinDuration:     90,
+		closedMaxDuration:     90,
+		closedSlotMinDuration: 5,
+		closedSlotMaxDuration: 80,
 	}},
 	{scenario: "TC26", in: []int{90, 90, 45, 45, 2, 3}, out: Expected{
 		impressionCount:       2,
@@ -280,10 +300,71 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 35,
 	}},
+	{scenario: "TC30", in: []int{123, 123, 34, 34, 3, 3}, out: Expected{
+		impressionCount: 3,
+		freeTime:        123,
+		output:          [][2]int64{},
+
+		closedMinDuration:     125,
+		closedMaxDuration:     125,
+		closedSlotMinDuration: 35,
+		closedSlotMaxDuration: 35,
+	}},
+	{scenario: "TC31", in: []int{123, 123, 31, 31, 3, 3}, out: Expected{
+		impressionCount: 3,
+		freeTime:        123,
+		output:          [][2]int64{},
+
+		closedMinDuration:     125,
+		closedMaxDuration:     125,
+		closedSlotMinDuration: 30,
+		closedSlotMaxDuration: 30,
+	}}, {scenario: "TC32", in: []int{134, 134, 63, 63, 2, 3}, out: Expected{
+		impressionCount: 0,
+		freeTime:        134,
+		output:          [][2]int64{},
+
+		closedMinDuration:     135,
+		closedMaxDuration:     135,
+		closedSlotMinDuration: 65,
+		closedSlotMaxDuration: 65,
+	}},
+	{scenario: "TC33", in: []int{147, 147, 30, 60, 4, 6}, out: Expected{
+		impressionCount: 4,
+		freeTime:        0,
+		output:          [][2]int64{{30, 42}, {35, 35}, {35, 35}, {35, 35}},
+
+		closedMinDuration:     145,
+		closedMaxDuration:     145,
+		closedSlotMinDuration: 30,
+		closedSlotMaxDuration: 60,
+	}},
+	{scenario: "TC34", in: []int{88, 102, 30, 30, 3, 3}, out: Expected{
+		impressionCount: 3,
+		freeTime:        12,
+		output:          [][2]int64{{30, 30}, {30, 30}, {30, 30}},
+
+		closedMinDuration:     90,
+		closedMaxDuration:     100,
+		closedSlotMinDuration: 30,
+		closedSlotMaxDuration: 30,
+	}}, {scenario: "TC35", in: []int{88, 102, 30, 42, 3, 3}, out: Expected{
+		impressionCount: 0,
+		freeTime:        102,
+		output:          [][2]int64{},
+
+		closedMinDuration:     90,
+		closedMaxDuration:     100,
+		closedSlotMinDuration: 30,
+		closedSlotMaxDuration: 40,
+	}},
 }
 
 func TestGetImpressions(t *testing.T) {
 	for _, impTest := range impressionsTests {
+		if impTest.scenario != "TC16" {
+			continue
+		}
 		t.Run(impTest.scenario, func(t *testing.T) {
 			p := newTestPod(int64(impTest.in[0]), int64(impTest.in[1]), impTest.in[2], impTest.in[3], impTest.in[4], impTest.in[5])
 			cfg, _ := getImpressions(p.podMinDuration, p.podMaxDuration, p.vPod)
