@@ -50,8 +50,15 @@ func init0(podMinDuration, podMaxDuration int64, vPod openrtb_ext.VideoAdPod) ad
 		config.podMinDuration = getClosetFactorForMinDuration(config.requestedPodMinDuration, multipleOf)
 		config.podMaxDuration = getClosetFactorForMaxDuration(config.requestedPodMaxDuration, multipleOf)
 	}
-	config.slotMinDuration = getClosetFactorForMinDuration(int64(config.requestedSlotMinDuration), multipleOf)
-	config.slotMaxDuration = getClosetFactorForMaxDuration(int64(*vPod.MaxDuration), multipleOf)
+
+	if config.requestedSlotMinDuration == config.requestedSlotMaxDuration {
+		/*TestCase 30*/
+		config.slotMinDuration = getClosetFactor(config.requestedSlotMinDuration, multipleOf)
+		config.slotMaxDuration = config.slotMinDuration
+	} else {
+		config.slotMinDuration = getClosetFactorForMinDuration(int64(config.requestedSlotMinDuration), multipleOf)
+		config.slotMaxDuration = getClosetFactorForMaxDuration(int64(*vPod.MaxDuration), multipleOf)
+	}
 	config.minAds = int64(*vPod.MinAds)
 	config.maxAds = int64(*vPod.MaxAds)
 	config.totalSlotTime = new(int64)
@@ -205,6 +212,8 @@ func (config *adPodConfig) validateSlots() {
 		return
 	}
 
+	returnEmptySlots := false
+
 	// check slot with 0 values
 	// remove them from config.Slots
 	emptySlotCount := 0
@@ -212,6 +221,14 @@ func (config *adPodConfig) validateSlots() {
 		if slot[0] == 0 || slot[1] == 0 {
 			log.Printf("WARNING:Slot[%v][%v] is having 0 duration\n", index, slot)
 			emptySlotCount++
+			continue
+		}
+
+		// check slot boundaries
+		if slot[1] < config.requestedSlotMinDuration || slot[1] > config.requestedSlotMaxDuration {
+			log.Printf("ERROR: Slot%v Duration %v sec is out of either requestedSlotMinDuration (%v) or requestedSlotMaxDuration (%v)\n", index, slot[1], config.requestedSlotMinDuration, config.requestedSlotMaxDuration)
+			returnEmptySlots = true
+			break
 		}
 	}
 
@@ -229,7 +246,6 @@ func (config *adPodConfig) validateSlots() {
 		log.Printf("Removed %v empty slots\n", emptySlotCount)
 	}
 
-	returnEmptySlots := false
 	if int64(len(config.Slots)) < config.minAds || int64(len(config.Slots)) > config.maxAds {
 		log.Printf("ERROR: slotSize %v is either less than Min Ads (%v) or greater than Max Ads (%v)\n", len(config.Slots), config.minAds, config.maxAds)
 		returnEmptySlots = true
@@ -280,16 +296,17 @@ func (config adPodConfig) addTime(timeForEachSlot int64) (int64, bool) {
 		// 1. time(slot(0)) <= config.SlotMaxDuration
 		// 2. if adding new time  to slot0 not exeeding config.SlotMaxDuration
 		// 3. if sum(slot time) +  timeForEachSlot  <= config.RequestedPodMaxDuration
-		canAdjustTime := (slot[0] + timeForEachSlot) <= config.slotMaxDuration
+		canAdjustTime := (slot[0]+timeForEachSlot) <= config.requestedSlotMaxDuration && (slot[0]+timeForEachSlot) >= config.requestedSlotMinDuration
 		totalSlotTimeWithNewTimeLessThanRequestedPodMaxDuration := *config.totalSlotTime+timeForEachSlot <= config.requestedPodMaxDuration
-		maxPodDurationMatchUpTime := config.requestedPodMaxDuration - config.podMaxDuration
+		//maxPodDurationMatchUpTime := config.requestedPodMaxDuration - config.podMaxDuration
 		if slot[0] <= config.slotMaxDuration && canAdjustTime && totalSlotTimeWithNewTimeLessThanRequestedPodMaxDuration {
 			slot[0] += timeForEachSlot
 
 			// if we are adjusting the free time which will match up with config.RequestedPodMaxDuration
 			// then set config.SlotMinDuration as min value for this slot
 			// TestCase #16
-			if timeForEachSlot == maxPodDurationMatchUpTime {
+			//if timeForEachSlot == maxPodDurationMatchUpTime {
+			if timeForEachSlot < multipleOf {
 				// override existing value of slot[0] here
 				slot[0] = config.requestedSlotMinDuration
 			}
