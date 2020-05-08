@@ -21,14 +21,20 @@ var (
 	errInvalidMinMaxDuration                      = errors.New("%key%.ext.adpod.adminduration must be less than %key%.ext.adpod.admaxduration")
 )
 
-//VideoExtension structure to accept video specific more parameters like adpod
-type VideoExtension struct {
+// ExtCTVRequest defines the contract for bidrequest.ext
+type ExtCTVRequest struct {
+	ExtRequest
+	AdPod *ExtRequestAdPod `json:"adpod,omitempty"`
+}
+
+//ExtVideoAdPod structure to accept video specific more parameters like adpod
+type ExtVideoAdPod struct {
 	Offset *int        `json:"offset,omitempty"` // Minutes from start where this ad is intended to show
 	AdPod  *VideoAdPod `json:"adpod,omitempty"`
 }
 
-//ReqAdPodExt holds AdPod specific extension parameters at request level
-type ReqAdPodExt struct {
+//ExtRequestAdPod holds AdPod specific extension parameters at request level
+type ExtRequestAdPod struct {
 	VideoAdPod
 	CrossPodAdvertiserExclusionPercent  *int `json:"crosspodexcladv,omitempty"`    //Percent Value - Across multiple impression there will be no ads from same advertiser. Note: These cross pod rule % values can not be more restrictive than per pod
 	CrossPodIABCategoryExclusionPercent *int `json:"crosspodexcliabcat,omitempty"` //Percent Value - Across multiple impression there will be no ads from same advertiser
@@ -47,13 +53,13 @@ type VideoAdPod struct {
 }
 
 /*
-//UnmarshalJSON will unmarshal extension into VideoExtension object
-func (ext *VideoExtension) UnmarshalJSON(b []byte) error {
+//UnmarshalJSON will unmarshal extension into ExtVideoAdPod object
+func (ext *ExtVideoAdPod) UnmarshalJSON(b []byte) error {
 	return json.Unmarshal(b, ext)
 }
 
-//UnmarshalJSON will unmarshal extension into ReqAdPodExt object
-func (ext *ReqAdPodExt) UnmarshalJSON(b []byte) error {
+//UnmarshalJSON will unmarshal extension into ExtRequestAdPod object
+func (ext *ExtRequestAdPod) UnmarshalJSON(b []byte) error {
 	return json.Unmarshal(b, ext)
 }
 */
@@ -108,8 +114,8 @@ func (pod *VideoAdPod) Validate() (err []error) {
 	return
 }
 
-//Validate will validate ReqAdPodExt object
-func (ext *ReqAdPodExt) Validate() (err []error) {
+//Validate will validate ExtRequestAdPod object
+func (ext *ExtRequestAdPod) Validate() (err []error) {
 	if nil == ext {
 		return
 	}
@@ -142,7 +148,7 @@ func (ext *ReqAdPodExt) Validate() (err []error) {
 }
 
 //Validate will validate video extension object
-func (ext *VideoExtension) Validate() (err []error) {
+func (ext *ExtVideoAdPod) Validate() (err []error) {
 	if nil != ext.Offset && *ext.Offset < 0 {
 		err = append(err, errInvalidAdPodOffset)
 	}
@@ -182,7 +188,7 @@ func (pod *VideoAdPod) SetDefaultValue() {
 }
 
 //SetDefaultValue will set default values if not present
-func (ext *ReqAdPodExt) SetDefaultValue() {
+func (ext *ExtRequestAdPod) SetDefaultValue() {
 	//ext.VideoAdPod setting default value
 	ext.VideoAdPod.SetDefaultValue()
 
@@ -208,7 +214,7 @@ func (ext *ReqAdPodExt) SetDefaultValue() {
 }
 
 //SetDefaultValue will set default values if not present
-func (ext *VideoExtension) SetDefaultValue() {
+func (ext *ExtVideoAdPod) SetDefaultValue() {
 	//ext.Offset setting default values
 	if nil == ext.Offset {
 		ext.Offset = getIntPtr(0)

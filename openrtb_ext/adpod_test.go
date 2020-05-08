@@ -151,7 +151,7 @@ func TestVideoAdPod_Validate(t *testing.T) {
 	}
 }
 
-func TestReqAdPodExt_Validate(t *testing.T) {
+func TestExtRequestAdPod_Validate(t *testing.T) {
 	type fields struct {
 		VideoAdPod                          VideoAdPod
 		CrossPodAdvertiserExclusionPercent  *int
@@ -237,7 +237,7 @@ func TestReqAdPodExt_Validate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ext := &ReqAdPodExt{
+			ext := &ExtRequestAdPod{
 				VideoAdPod:                          tt.fields.VideoAdPod,
 				CrossPodAdvertiserExclusionPercent:  tt.fields.CrossPodAdvertiserExclusionPercent,
 				CrossPodIABCategoryExclusionPercent: tt.fields.CrossPodIABCategoryExclusionPercent,
@@ -250,7 +250,7 @@ func TestReqAdPodExt_Validate(t *testing.T) {
 	}
 }
 
-func TestVideoExtension_Validate(t *testing.T) {
+func TestExtVideoAdPod_Validate(t *testing.T) {
 	type fields struct {
 		Offset *int
 		AdPod  *VideoAdPod
@@ -295,7 +295,7 @@ func TestVideoExtension_Validate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ext := &VideoExtension{
+			ext := &ExtVideoAdPod{
 				Offset: tt.fields.Offset,
 				AdPod:  tt.fields.AdPod,
 			}
