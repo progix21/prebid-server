@@ -9,6 +9,8 @@ var (
 	errInvalidAdPodMinDuration                    = errors.New("imp.video.minduration must be number positive number")
 	errInvalidAdPodMaxDuration                    = errors.New("imp.video.maxduration must be number positive non zero number")
 	errInvalidAdPodDuration                       = errors.New("imp.video.minduration must be less than imp.video.maxduration")
+	errInvalidMinDurationRange                    = errors.New("imp.video.ext.adpod.adminduration * imp.video.ext.adpod.minads should be greater than or equal to imp.video.minduration")
+	errInvalidMaxDurationRange                    = errors.New("imp.video.ext.adpod.admaxduration * imp.video.ext.adpod.maxads should be less than or equal to imp.video.maxduration + imp.video.maxextended")
 	errInvalidCrossPodAdvertiserExclusionPercent  = errors.New("request.ext.adpod.crosspodexcladv must be a number between 0 and 100")
 	errInvalidCrossPodIABCategoryExclusionPercent = errors.New("request.ext.adpod.crosspodexcliabcat must be a number between 0 and 100")
 	errInvalidIABCategoryExclusionWindow          = errors.New("request.ext.adpod.excliabcatwindow must be postive number")
@@ -269,15 +271,31 @@ func (pod *VideoAdPod) Merge(parent *VideoAdPod) {
 }
 
 //ValidateAdPodDurations will validate adpod min,max durations
-func ValidateAdPodDurations(minDuration, maxDuration int64) (err []error) {
+func (pod *VideoAdPod) ValidateAdPodDurations(minDuration, maxDuration, maxExtended int64) (err []error) {
 	if minDuration < 0 {
 		err = append(err, errInvalidAdPodMinDuration)
 	}
+
 	if maxDuration <= 0 {
 		err = append(err, errInvalidAdPodMaxDuration)
 	}
+
 	if minDuration > maxDuration {
 		err = append(err, errInvalidAdPodDuration)
+	}
+
+	//adpod.adminduration*adpod.minads should be greater than or equal to video.minduration
+	if nil != pod.MinAds && nil != pod.MinDuration {
+		if int64((*pod.MinAds)*(*pod.MinDuration)) < minDuration {
+			err = append(err, errInvalidMinDurationRange)
+		}
+	}
+
+	//adpod.admaxduration*adpod.maxads should be less than or equal to video.maxduration + video.maxextended
+	if maxExtended > 0 && nil != pod.MaxAds && nil != pod.MaxDuration {
+		if int64((*pod.MaxAds)*(*pod.MaxDuration)) > (maxDuration + maxExtended) {
+			err = append(err, errInvalidMaxDurationRange)
+		}
 	}
 	return
 }

@@ -377,17 +377,19 @@ func (deps *ctvEndpointDeps) validateBidRequest() (err []error) {
 	}
 
 	for index, imp := range deps.request.Imp {
-		if nil != imp.Video {
-			if errL := openrtb_ext.ValidateAdPodDurations(imp.Video.MinDuration, imp.Video.MaxDuration); nil != errL {
+		if nil != imp.Video && nil != deps.impData[index].VideoExt {
+			ext := deps.impData[index].VideoExt
+			if errL := ext.Validate(); nil != errL {
 				err = append(err, errL...)
+			}
+
+			if nil != ext.AdPod {
+				if errL := ext.AdPod.ValidateAdPodDurations(imp.Video.MinDuration, imp.Video.MaxDuration, imp.Video.MaxExtended); nil != errL {
+					err = append(err, errL...)
+				}
 			}
 		}
 
-		if nil != deps.impData[index].VideoExt {
-			if errL := deps.impData[index].VideoExt.Validate(); nil != errL {
-				err = append(err, errL...)
-			}
-		}
 	}
 	return
 }
