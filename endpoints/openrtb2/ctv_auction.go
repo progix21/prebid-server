@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"math"
 	"net/http"
 	"sort"
@@ -309,22 +308,17 @@ func (deps *ctvEndpointDeps) readExtVideoAdPods() (err []error) {
 func (deps *ctvEndpointDeps) readRequestExtension() (err []error) {
 	if len(deps.request.Ext) > 0 {
 
-		log.Printf("[V0] %v", string(deps.request.Ext))
-
 		//TODO: use jsonparser library for get adpod and remove that key
 		extAdPod, jsonType, _, errL := jsonparser.Get(deps.request.Ext, keyAdPod)
 
-		log.Printf("[V1] %v, %v, %v", string(extAdPod), jsonType.String(), errL)
 		if nil != errL {
 			//parsing error
-			log.Printf("[V2] %v, %v, %v", string(extAdPod), jsonType.String(), errL)
 			if jsonparser.NotExist != jsonType {
 				//assuming key not present
 				err = append(err, errL)
 				return
 			}
 		} else {
-			log.Printf("[V3] %v, %v, %v", string(extAdPod), jsonType.String(), errL)
 			deps.reqExt = &openrtb_ext.ExtRequestAdPod{}
 
 			if errL := json.Unmarshal(extAdPod, deps.reqExt); nil != errL {
@@ -332,7 +326,6 @@ func (deps *ctvEndpointDeps) readRequestExtension() (err []error) {
 				return
 			}
 
-			log.Printf("[V4] %v, %v, %v", string(extAdPod), jsonType.String(), errL)
 			deps.reqExt.SetDefaultValue()
 
 			//removing key from extensions
@@ -383,12 +376,17 @@ func (deps *ctvEndpointDeps) validateBidRequest() (err []error) {
 		err = deps.reqExt.Validate()
 	}
 
-	for index := range deps.request.Imp {
+	for index, imp := range deps.request.Imp {
+		if nil != imp.Video {
+			if errL := openrtb_ext.ValidateAdPodDurations(imp.Video.MinDuration, imp.Video.MaxDuration); nil != errL {
+				err = append(err, errL...)
+			}
+		}
+
 		if nil != deps.impData[index].VideoExt {
 			if errL := deps.impData[index].VideoExt.Validate(); nil != errL {
 				err = append(err, errL...)
 			}
-			//TODO: Validate Invalid Configurations based on imp.video.minduration and imp.video.maxduration
 		}
 	}
 	return

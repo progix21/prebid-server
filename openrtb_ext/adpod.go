@@ -6,6 +6,9 @@ import (
 )
 
 var (
+	errInvalidAdPodMinDuration                    = errors.New("imp.video.minduration must be number positive number")
+	errInvalidAdPodMaxDuration                    = errors.New("imp.video.maxduration must be number positive non zero number")
+	errInvalidAdPodDuration                       = errors.New("imp.video.minduration must be less than imp.video.maxduration")
 	errInvalidCrossPodAdvertiserExclusionPercent  = errors.New("request.ext.adpod.crosspodexcladv must be a number between 0 and 100")
 	errInvalidCrossPodIABCategoryExclusionPercent = errors.New("request.ext.adpod.crosspodexcliabcat must be a number between 0 and 100")
 	errInvalidIABCategoryExclusionWindow          = errors.New("request.ext.adpod.excliabcatwindow must be postive number")
@@ -263,4 +266,18 @@ func (pod *VideoAdPod) Merge(parent *VideoAdPod) {
 	if nil == pod.IABCategoryExclusionPercent {
 		pod.IABCategoryExclusionPercent = parent.IABCategoryExclusionPercent
 	}
+}
+
+//ValidateAdPodDurations will validate adpod min,max durations
+func ValidateAdPodDurations(minDuration, maxDuration int64) (err []error) {
+	if minDuration < 0 {
+		err = append(err, errInvalidAdPodMinDuration)
+	}
+	if maxDuration <= 0 {
+		err = append(err, errInvalidAdPodMaxDuration)
+	}
+	if minDuration > maxDuration {
+		err = append(err, errInvalidAdPodDuration)
+	}
+	return
 }
