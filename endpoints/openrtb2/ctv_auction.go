@@ -67,6 +67,7 @@ type ctvEndpointDeps struct {
 	request        *openrtb.BidRequest
 	reqExt         *openrtb_ext.ExtRequestAdPod
 	impData        []*ImpData
+	videoSeats     []*openrtb.SeatBid //stores pure video impression bids
 	impIndices     map[string]int
 	isAdPodRequest bool
 }
@@ -353,7 +354,7 @@ func (deps *ctvEndpointDeps) readExtensions() (err []error) {
 func (deps *ctvEndpointDeps) setIsAdPodRequest() {
 	deps.isAdPodRequest = false
 	for _, data := range deps.impData {
-		if nil != data.VideoExt {
+		if nil != data.VideoExt && nil != data.VideoExt.AdPod {
 			deps.isAdPodRequest = true
 			break
 		}
@@ -413,7 +414,7 @@ func (deps *ctvEndpointDeps) createBidRequest(req *openrtb.BidRequest) *openrtb.
 //getAllAdPodImpsConfigs will return all impression adpod configurations
 func (deps *ctvEndpointDeps) getAllAdPodImpsConfigs() {
 	for index, imp := range deps.request.Imp {
-		if nil == imp.Video {
+		if nil == imp.Video || nil == deps.impData[index].VideoExt || nil == deps.impData[index].VideoExt.AdPod {
 			continue
 		}
 		deps.impData[index].Config = getAdPodImpsConfigs(&imp, deps.impData[index].VideoExt.AdPod)
@@ -440,16 +441,27 @@ func getAdPodImpsConfigs(imp *openrtb.Imp, adpod *openrtb_ext.VideoAdPod) []*Imp
 func (deps *ctvEndpointDeps) createImpressions() []openrtb.Imp {
 	impCount := 0
 	for _, imp := range deps.impData {
-		impCount = impCount + len(imp.Config)
+		if len(imp.Config) == 0 {
+			impCount = impCount + 1
+		} else {
+			impCount = impCount + len(imp.Config)
+		}
 	}
 
 	count := 0
 	imps := make([]openrtb.Imp, impCount)
 	for index, imp := range deps.request.Imp {
 		adPodConfig := deps.impData[index].Config
-		for _, config := range adPodConfig {
-			imps[count] = *(newImpression(&imp, config))
+		if len(adPodConfig) == 0 {
+			//non adpod request it will be normal video impression
+			imps[count] = imp
 			count++
+		} else {
+			//for adpod request it will create new impression based on configurations
+			for _, config := range adPodConfig {
+				imps[count] = *(newImpression(&imp, config))
+				count++
+			}
 		}
 	}
 
@@ -476,39 +488,58 @@ func newImpression(imp *openrtb.Imp, config *ImpAdPodConfig) *openrtb.Imp {
 
 //validateBidResponse
 func (deps *ctvEndpointDeps) validateBidResponse(req *openrtb.BidRequest, resp *openrtb.BidResponse) error {
+	//remove bids withoug cat and adomain
+
 	return nil
 }
 
 //getBids reads bids from bidresponse object
 func (deps *ctvEndpointDeps) getBids(resp *openrtb.BidResponse) {
+	var vseat *openrtb.SeatBid
 	result := make(map[string]*AdPodBid)
 
-	for _, seat := range resp.SeatBid {
-		for _, bid := range seat.Bid {
+	for i := range resp.SeatBid {
+		seat := resp.SeatBid[i]
+		vseat = nil
+
+		for j := range seat.Bid {
+			bid := seat.Bid[j]
 
 			if len(bid.ID) == 0 || bid.Price == 0 {
 				//filter invalid bids
 				continue
 			}
 
-			//remove bids withoug cat and adomain
-
 			originalImpID, sequenceNumber := decodeImpressionID(bid.ImpID)
 			index, ok := deps.impIndices[originalImpID]
-			if !ok || sequenceNumber <= 0 || sequenceNumber > len(deps.impData[index].Config) {
+			if !ok || sequenceNumber < 0 || sequenceNumber > len(deps.impData[index].Config) {
 				//filter bid; reason: impression id not found
 				continue
 			}
 
-			adpodBid, ok := result[originalImpID]
-			if !ok {
-				adpodBid = &AdPodBid{
-					OriginalImpID: originalImpID,
-					SeatName:      "pubmatic",
+			if len(deps.impData[index].Config) == 0 {
+				//adding pure video bids
+				if vseat == nil {
+					vseat = &openrtb.SeatBid{
+						Seat:  seat.Seat,
+						Group: seat.Group,
+						Ext:   seat.Ext,
+					}
+					deps.videoSeats = append(deps.videoSeats, vseat)
 				}
-				result[originalImpID] = adpodBid
+				vseat.Bid = append(vseat.Bid, bid)
+			} else {
+				//Adding adpod bids
+				adpodBid, ok := result[originalImpID]
+				if !ok {
+					adpodBid = &AdPodBid{
+						OriginalImpID: originalImpID,
+						SeatName:      "pubmatic",
+					}
+					result[originalImpID] = adpodBid
+				}
+				adpodBid.Bids = append(adpodBid.Bids, &bid)
 			}
-			adpodBid.Bids = append(adpodBid.Bids, &bid)
 		}
 	}
 
@@ -550,16 +581,22 @@ func (deps *ctvEndpointDeps) createBidResponse(resp *openrtb.BidResponse, adpods
 		Cur:        resp.Cur,
 		CustomData: resp.CustomData,
 	}
+	//append pure video request seats
+	for _, seat := range deps.videoSeats {
+		bidResp.SeatBid = append(bidResp.SeatBid, *seat)
+	}
+
 	for _, adpod := range adpods {
 		if len(adpod.Bids) == 0 {
 			continue
 		}
+
 		bid := deps.getAdPodBid(adpod)
 		if bid != nil {
 			found := false
-			for _, seat := range bidResp.SeatBid {
-				if seat.Seat == adpod.SeatName {
-					seat.Bid = append(seat.Bid, *bid)
+			for index := range bidResp.SeatBid {
+				if bidResp.SeatBid[index].Seat == adpod.SeatName {
+					bidResp.SeatBid[index].Bid = append(bidResp.SeatBid[index].Bid, *bid)
 					found = true
 					break
 				}
@@ -804,11 +841,11 @@ var VASTVersionsStr = []string{"0", "1.0", "2.0", "3.0", "4.0"}
 func decodeImpressionID(id string) (string, int) {
 	values := strings.Split(id, "_")
 	if len(values) == 1 {
-		return values[0], 1
+		return id, 0
 	}
 	sequence, err := strconv.Atoi(values[1])
 	if err != nil {
-		sequence = 1
+		return id, 0
 	}
 	return values[0], sequence
 }
