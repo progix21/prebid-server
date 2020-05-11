@@ -26,6 +26,17 @@ var (
 	errInvalidMinMaxDuration                      = errors.New("%key%.ext.adpod.adminduration must be less than %key%.ext.adpod.admaxduration")
 )
 
+// ExtCTVBid defines the contract for bidresponse.seatbid.bid[i].ext
+type ExtCTVBid struct {
+	ExtBid
+	AdPod *BidAdPodExt `json:"adpod,omitempty"`
+}
+
+// BidAdPodExt defines the prebid adpod response in bidresponse.ext.adpod parameter
+type BidAdPodExt struct {
+	RefBids []string `json:"refbids,omitempty"`
+}
+
 // ExtCTVRequest defines the contract for bidrequest.ext
 type ExtCTVRequest struct {
 	ExtRequest
