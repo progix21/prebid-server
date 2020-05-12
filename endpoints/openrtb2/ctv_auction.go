@@ -56,7 +56,7 @@ type ImpAdPodConfig struct {
 //ImpData example
 type ImpData struct {
 	//AdPodGenerator
-	VideoExt openrtb_ext.VideoExtension
+	VideoExt *openrtb_ext.ExtVideoAdPod
 	Config   []*ImpAdPodConfig
 	Bid      *AdPodBid
 }
@@ -64,10 +64,11 @@ type ImpData struct {
 //CTV Specific Endpoint
 type ctvEndpointDeps struct {
 	endpointDeps
-	request    *openrtb.BidRequest
-	reqExt     openrtb_ext.ReqAdPodExt
-	impData    []*ImpData
-	impIndices map[string]int
+	request        *openrtb.BidRequest
+	reqExt         *openrtb_ext.ExtRequestAdPod
+	impData        []*ImpData
+	impIndices     map[string]int
+	isAdPodRequest bool
 }
 
 //NewCTVEndpoint new ctv endpoint object
@@ -109,6 +110,9 @@ func NewCTVEndpoint(
 
 func (deps *ctvEndpointDeps) CTVAuctionEndpoint(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
+	var request *openrtb.BidRequest
+	var errL []error
+
 	ao := analytics.AuctionObject{
 		Status: http.StatusOK,
 		Errors: make([]error, 0),
@@ -137,15 +141,15 @@ func (deps *ctvEndpointDeps) CTVAuctionEndpoint(w http.ResponseWriter, r *http.R
 	}()
 
 	//Parse ORTB Request and do Standard Validation
-	req, errL := deps.parseRequest(r)
+	request, errL = deps.parseRequest(r)
 	if fatalError(errL) && writeError(errL, w, &labels) {
 		return
 	}
 
-	jsonlog("Original BidRequest", req) //TODO: REMOVE LOG
+	jsonlog("Original BidRequest", request) //TODO: REMOVE LOG
 
 	//init
-	deps.init(req)
+	deps.init(request)
 
 	//Set Default Values
 	deps.setDefaultValues()
@@ -159,34 +163,26 @@ func (deps *ctvEndpointDeps) CTVAuctionEndpoint(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	//Create New BidRequest
-	ctvReq := deps.createBidRequest(req)
-	jsonlog("CTV BidRequest", ctvReq) //TODO: REMOVE LOG
-
-	ctx := context.Background()
-
-	//Setting Timeout for Request
-	timeout := deps.cfg.AuctionTimeouts.LimitAuctionTimeout(time.Duration(ctvReq.TMax) * time.Millisecond)
-	if timeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithDeadline(ctx, start.Add(timeout))
-		defer cancel()
+	if deps.isAdPodRequest {
+		//Create New BidRequest
+		request = deps.createBidRequest(request)
+		jsonlog("CTV BidRequest", request) //TODO: REMOVE LOG
 	}
 
 	//Parsing Cookies and Set Stats
 	usersyncs := usersync.ParsePBSCookieFromRequest(r, &(deps.cfg.HostCookie))
-	if ctvReq.App != nil {
+	if request.App != nil {
 		labels.Source = pbsmetrics.DemandApp
 		labels.RType = pbsmetrics.ReqTypeVideo
-		labels.PubID = effectivePubID(ctvReq.App.Publisher)
-	} else { //ctvReq.Site != nil
+		labels.PubID = effectivePubID(request.App.Publisher)
+	} else { //request.Site != nil
 		labels.Source = pbsmetrics.DemandWeb
 		if usersyncs.LiveSyncCount() == 0 {
 			labels.CookieFlag = pbsmetrics.CookieFlagNo
 		} else {
 			labels.CookieFlag = pbsmetrics.CookieFlagYes
 		}
-		labels.PubID = effectivePubID(ctvReq.Site.Publisher)
+		labels.PubID = effectivePubID(request.Site.Publisher)
 	}
 
 	//Validate Accounts
@@ -196,9 +192,19 @@ func (deps *ctvEndpointDeps) CTVAuctionEndpoint(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	ctx := context.Background()
+
+	//Setting Timeout for Request
+	timeout := deps.cfg.AuctionTimeouts.LimitAuctionTimeout(time.Duration(request.TMax) * time.Millisecond)
+	if timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithDeadline(ctx, start.Add(timeout))
+		defer cancel()
+	}
+
 	//Hold OpenRTB Standard Auction
-	response, err := deps.ex.HoldAuction(ctx, ctvReq, usersyncs, labels, &deps.categories)
-	ao.Request = ctvReq
+	response, err := deps.ex.HoldAuction(ctx, request, usersyncs, labels, &deps.categories)
+	ao.Request = request
 	ao.Response = response
 	if err != nil {
 		labels.RequestStatus = pbsmetrics.RequestStatusErr
@@ -211,22 +217,24 @@ func (deps *ctvEndpointDeps) CTVAuctionEndpoint(w http.ResponseWriter, r *http.R
 	}
 	jsonlog("BidResponse", response) //TODO: REMOVE LOG
 
-	//Validate Bid Response
-	if err := deps.validateBidResponse(ctvReq, response); err != nil {
-		errL = append(errL, err)
-		writeError(errL, w, &labels)
-		return
+	if deps.isAdPodRequest {
+		//Validate Bid Response
+		if err := deps.validateBidResponse(request, response); err != nil {
+			errL = append(errL, err)
+			writeError(errL, w, &labels)
+			return
+		}
+
+		//Create Impression Bids
+		deps.getBids(response)
+
+		//Do AdPod Exclusions
+		bids := deps.doAdPodExclusions()
+
+		//Create Bid Response
+		response = deps.createBidResponse(response, bids)
+		jsonlog("CTV BidResponse", response) //TODO: REMOVE LOG
 	}
-
-	//Create Impression Bids
-	deps.getBids(response)
-
-	//Do AdPod Exclusions
-	bids := deps.doAdPodExclusions()
-
-	//Create Bid Response
-	ctvResp := deps.createBidResponse(response, bids)
-	jsonlog("CTV BidResponse", ctvResp) //TODO: REMOVE LOG
 
 	// Response Generation
 	enc := json.NewEncoder(w)
@@ -238,7 +246,7 @@ func (deps *ctvEndpointDeps) CTVAuctionEndpoint(w http.ResponseWriter, r *http.R
 	// If an error happens when encoding the response, there isn't much we can do.
 	// If we've sent _any_ bytes, then Go would have sent the 200 status code first.
 	// That status code can't be un-sent... so the best we can do is log the error.
-	if err := enc.Encode(ctvResp); err != nil {
+	if err := enc.Encode(response); err != nil {
 		labels.RequestStatus = pbsmetrics.RequestStatusNetworkErr
 		ao.Errors = append(ao.Errors, fmt.Errorf("/openrtb2/video Failed to send response: %v", err))
 	}
@@ -257,11 +265,12 @@ func (deps *ctvEndpointDeps) init(req *openrtb.BidRequest) {
 	}
 }
 
-func (deps *ctvEndpointDeps) readVideoExtensions() (err []error) {
+func (deps *ctvEndpointDeps) readExtVideoAdPods() (err []error) {
 	for index, imp := range deps.request.Imp {
 		if nil != imp.Video {
+			vidExt := openrtb_ext.ExtVideoAdPod{}
 			if len(imp.Video.Ext) > 0 {
-				errL := json.Unmarshal(imp.Video.Ext, &deps.impData[index].VideoExt)
+				errL := json.Unmarshal(imp.Video.Ext, &vidExt)
 				if nil != err {
 					err = append(err, errL)
 					continue
@@ -274,18 +283,23 @@ func (deps *ctvEndpointDeps) readVideoExtensions() (err []error) {
 				}
 			}
 
-			pod := deps.impData[index].VideoExt.AdPod
-			if nil == pod {
-				pod = &openrtb_ext.VideoAdPod{}
-				deps.impData[index].VideoExt.AdPod = pod
+			if nil == vidExt.AdPod {
+				if nil == deps.reqExt {
+					continue
+				}
+				vidExt.AdPod = &openrtb_ext.VideoAdPod{}
 			}
 
 			//Use Request Level Parameters
-			pod.Merge(&deps.reqExt.VideoAdPod)
+			if nil != deps.reqExt {
+				vidExt.AdPod.Merge(&deps.reqExt.VideoAdPod)
+			}
 
 			//Set Default Values
-			deps.impData[index].VideoExt.SetDefaultValue()
-			pod.SetDefaultAdDurations(imp.Video.MinDuration, imp.Video.MaxDuration)
+			vidExt.SetDefaultValue()
+			vidExt.AdPod.SetDefaultAdDurations(imp.Video.MinDuration, imp.Video.MaxDuration)
+
+			deps.impData[index].VideoExt = &vidExt
 		}
 	}
 	return err
@@ -305,10 +319,14 @@ func (deps *ctvEndpointDeps) readRequestExtension() (err []error) {
 				return
 			}
 		} else {
-			if errL := json.Unmarshal(extAdPod, &deps.reqExt); nil != errL {
+			deps.reqExt = &openrtb_ext.ExtRequestAdPod{}
+
+			if errL := json.Unmarshal(extAdPod, deps.reqExt); nil != errL {
 				err = append(err, errL)
 				return
 			}
+
+			deps.reqExt.SetDefaultValue()
 
 			//removing key from extensions
 			deps.request.Ext = jsonparser.Delete(deps.request.Ext, keyAdPod)
@@ -317,7 +335,7 @@ func (deps *ctvEndpointDeps) readRequestExtension() (err []error) {
 			}
 		}
 	}
-	deps.reqExt.SetDefaultValue()
+
 	return
 }
 
@@ -326,28 +344,52 @@ func (deps *ctvEndpointDeps) readExtensions() (err []error) {
 		err = append(err, errL...)
 	}
 
-	if errL := deps.readVideoExtensions(); nil != errL {
+	if errL := deps.readExtVideoAdPods(); nil != errL {
 		err = append(err, errL...)
 	}
 	return err
+}
+
+func (deps *ctvEndpointDeps) setIsAdPodRequest() {
+	deps.isAdPodRequest = false
+	for _, data := range deps.impData {
+		if nil != data.VideoExt {
+			deps.isAdPodRequest = true
+			break
+		}
+	}
 }
 
 //setDefaultValues will set adpod and other default values
 func (deps *ctvEndpointDeps) setDefaultValues() {
 	//read and set extension values
 	deps.readExtensions()
+
+	//set request is adpod request or normal request
+	deps.setIsAdPodRequest()
 }
 
 //validateBidRequest will validate AdPod specific mandatory Parameters and returns error
 func (deps *ctvEndpointDeps) validateBidRequest() (err []error) {
 	//validating video extension adpod configurations
-	err = deps.reqExt.Validate()
+	if nil != deps.reqExt {
+		err = deps.reqExt.Validate()
+	}
 
-	for index := range deps.request.Imp {
-		if errL := deps.impData[index].VideoExt.Validate(); nil != errL {
-			err = append(err, errL...)
+	for index, imp := range deps.request.Imp {
+		if nil != imp.Video && nil != deps.impData[index].VideoExt {
+			ext := deps.impData[index].VideoExt
+			if errL := ext.Validate(); nil != errL {
+				err = append(err, errL...)
+			}
+
+			if nil != ext.AdPod {
+				if errL := ext.AdPod.ValidateAdPodDurations(imp.Video.MinDuration, imp.Video.MaxDuration, imp.Video.MaxExtended); nil != errL {
+					err = append(err, errL...)
+				}
+			}
 		}
-		//TODO: Validate Invalid Configurations based on imp.video.minduration and imp.video.maxduration
+
 	}
 	return
 }

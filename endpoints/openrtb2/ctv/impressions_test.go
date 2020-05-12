@@ -402,7 +402,11 @@ func TestGetImpressions(t *testing.T) {
 			cfg, _ := getImpressions(p.podMinDuration, p.podMaxDuration, p.vPod)
 			expected := impTest.out
 
+<<<<<<< HEAD
 			// assert.Equal(t, expected.impressionCount, len(cfg.Slots), "Expected impression count = %v . But Found %v", expectedImpressionCount, len(pod.Slots))
+=======
+			// assert.Equal(t, expected.impressionCount, len(pod.Slots), "Expected impression count = %v . But Found %v", expectedImpressionCount, len(pod.Slots))
+>>>>>>> UOE-5060
 			assert.Equal(t, expected.freeTime, cfg.freeTime, "Expected Free Time = %v . But Found %v", expected.freeTime, cfg.freeTime)
 			assert.Equal(t, expected.closedMinDuration, cfg.podMinDuration, "Expected closedMinDuration= %v . But Found %v", expected.closedMinDuration, cfg.podMinDuration)
 			assert.Equal(t, expected.closedMaxDuration, cfg.podMaxDuration, "Expected closedMinDuration= %v . But Found %v", expected.closedMaxDuration, cfg.podMaxDuration)
