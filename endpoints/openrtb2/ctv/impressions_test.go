@@ -7,13 +7,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type TestAdPod struct {
+type testAdPod struct {
 	vPod           openrtb_ext.VideoAdPod
 	podMinDuration int64
 	podMaxDuration int64
 }
 
-type Expected struct {
+type expected struct {
 	impressionCount int
 	// Time remaining after ad breaking is done
 	// if no ad breaking i.e. 0 then freeTime = pod.maxduration
@@ -32,9 +32,9 @@ type Expected struct {
 var impressionsTests = []struct {
 	scenario string   // Testcase scenario
 	in       []int    // Testcase input
-	out      Expected // Testcase execpted output
+	out      expected // Testcase execpted output
 }{
-	{scenario: "TC2", in: []int{1, 90, 11, 15, 2, 8}, out: Expected{
+	{scenario: "TC2", in: []int{1, 90, 11, 15, 2, 8}, out: expected{
 		impressionCount:       6,
 		freeTime:              0.0,
 		output:                [][2]int64{{15, 15}, {15, 15}, {15, 15}, {15, 15}, {15, 15}, {15, 15}},
@@ -43,7 +43,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 15,
 		closedSlotMaxDuration: 15,
 	}},
-	{scenario: "TC3", in: []int{1, 90, 11, 15, 2, 4}, out: Expected{
+	{scenario: "TC3", in: []int{1, 90, 11, 15, 2, 4}, out: expected{
 		impressionCount: 4,
 		freeTime:        30.0,
 		output:          [][2]int64{{15, 15}, {15, 15}, {15, 15}, {15, 15}},
@@ -53,7 +53,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 15,
 		closedSlotMaxDuration: 15,
 	}},
-	{scenario: "TC4", in: []int{1, 15, 1, 15, 1, 1}, out: Expected{
+	{scenario: "TC4", in: []int{1, 15, 1, 15, 1, 1}, out: expected{
 		impressionCount: 1,
 		freeTime:        0.0,
 		output:          [][2]int64{{15, 15}},
@@ -63,7 +63,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 15,
 	}},
-	{scenario: "TC5", in: []int{1, 15, 1, 15, 1, 2}, out: Expected{
+	{scenario: "TC5", in: []int{1, 15, 1, 15, 1, 2}, out: expected{
 		impressionCount: 2,
 		freeTime:        0.0,
 		output:          [][2]int64{{10, 10}, {5, 5}},
@@ -73,7 +73,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 15,
 	}},
-	{scenario: "TC6", in: []int{1, 90, 1, 15, 1, 8}, out: Expected{
+	{scenario: "TC6", in: []int{1, 90, 1, 15, 1, 8}, out: expected{
 		impressionCount: 8,
 		freeTime:        0.0,
 		output:          [][2]int64{{15, 15}, {15, 15}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}},
@@ -83,7 +83,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 15,
 	}},
-	{scenario: "TC7", in: []int{15, 30, 8, 15, 1, 1}, out: Expected{
+	{scenario: "TC7", in: []int{15, 30, 8, 15, 1, 1}, out: expected{
 		impressionCount: 1,
 		freeTime:        15.0,
 		output:          [][2]int64{{15, 15}},
@@ -93,7 +93,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 10,
 		closedSlotMaxDuration: 15,
 	}},
-	{scenario: "TC8", in: []int{35, 35, 10, 35, 3, 40}, out: Expected{
+	{scenario: "TC8", in: []int{35, 35, 10, 35, 3, 40}, out: expected{
 		impressionCount: 3,
 		freeTime:        0.0,
 		output:          [][2]int64{{15, 15}, {10, 10}, {10, 10}},
@@ -103,7 +103,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 10,
 		closedSlotMaxDuration: 35,
 	}},
-	{scenario: "TC9", in: []int{35, 35, 10, 35, 6, 40}, out: Expected{
+	{scenario: "TC9", in: []int{35, 35, 10, 35, 6, 40}, out: expected{
 		impressionCount: 0,
 		freeTime:        35,
 		output:          [][2]int64{},
@@ -113,7 +113,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 10,
 		closedSlotMaxDuration: 35,
 	}},
-	{scenario: "TC10", in: []int{35, 65, 10, 35, 6, 40}, out: Expected{
+	{scenario: "TC10", in: []int{35, 65, 10, 35, 6, 40}, out: expected{
 		impressionCount: 6,
 		freeTime:        0.0,
 		output:          [][2]int64{{15, 15}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}},
@@ -123,7 +123,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 10,
 		closedSlotMaxDuration: 35,
 	}},
-	{scenario: "TC11", in: []int{35, 65, 9, 35, 7, 40}, out: Expected{
+	{scenario: "TC11", in: []int{35, 65, 9, 35, 7, 40}, out: expected{
 		impressionCount: 0, //7,
 		freeTime:        65,
 		output:          [][2]int64{},
@@ -133,7 +133,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 10,
 		closedSlotMaxDuration: 35,
 	}},
-	{scenario: "TC12", in: []int{100, 100, 10, 35, 6, 40}, out: Expected{
+	{scenario: "TC12", in: []int{100, 100, 10, 35, 6, 40}, out: expected{
 		impressionCount: 10,
 		freeTime:        0.0,
 		output:          [][2]int64{{10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}},
@@ -143,7 +143,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 10,
 		closedSlotMaxDuration: 35,
 	}},
-	{scenario: "TC13", in: []int{60, 60, 5, 9, 1, 6}, out: Expected{
+	{scenario: "TC13", in: []int{60, 60, 5, 9, 1, 6}, out: expected{
 		impressionCount: 0,
 		freeTime:        60,
 		output:          [][2]int64{},
@@ -153,7 +153,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 5,
 	}},
-	{scenario: "TC14", in: []int{30, 60, 5, 9, 1, 6}, out: Expected{
+	{scenario: "TC14", in: []int{30, 60, 5, 9, 1, 6}, out: expected{
 		impressionCount: 6,
 		freeTime:        30,
 		output:          [][2]int64{{5, 5}, {5, 5}, {5, 5}, {5, 5}, {5, 5}, {5, 5}},
@@ -163,7 +163,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 5,
 	}},
-	{scenario: "TC15", in: []int{30, 60, 5, 9, 1, 5}, out: Expected{
+	{scenario: "TC15", in: []int{30, 60, 5, 9, 1, 5}, out: expected{
 		impressionCount: 0,
 		freeTime:        60,
 		output:          [][2]int64{},
@@ -173,7 +173,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 5,
 	}},
-	{scenario: "TC16", in: []int{126, 126, 1, 12, 7, 13}, out: Expected{
+	{scenario: "TC16", in: []int{126, 126, 1, 12, 7, 13}, out: expected{
 		impressionCount: 13,
 		freeTime:        0,
 		output:          [][2]int64{{1, 11}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {5, 5}},
@@ -183,7 +183,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 10,
 	}},
-	{scenario: "TC17", in: []int{127, 128, 1, 12, 7, 13}, out: Expected{
+	{scenario: "TC17", in: []int{127, 128, 1, 12, 7, 13}, out: expected{
 		impressionCount: 13,
 		freeTime:        0,
 		output:          [][2]int64{{10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {1, 8}},
@@ -193,7 +193,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 10,
 	}},
-	{scenario: "TC18", in: []int{125, 125, 4, 4, 1, 1}, out: Expected{
+	{scenario: "TC18", in: []int{125, 125, 4, 4, 1, 1}, out: expected{
 		impressionCount: 0,
 		freeTime:        125,
 		output:          [][2]int64{},
@@ -203,7 +203,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 5,
 	}},
-	{scenario: "TC19", in: []int{90, 90, 7, 9, 3, 5}, out: Expected{
+	{scenario: "TC19", in: []int{90, 90, 7, 9, 3, 5}, out: expected{
 		impressionCount: 0,
 		freeTime:        90,
 		output:          [][2]int64{},
@@ -213,7 +213,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 10,
 		closedSlotMaxDuration: 5,
 	}},
-	{scenario: "TC20", in: []int{90, 90, 5, 10, 1, 11}, out: Expected{
+	{scenario: "TC20", in: []int{90, 90, 5, 10, 1, 11}, out: expected{
 		impressionCount: 9,
 		freeTime:        0,
 		output:          [][2]int64{{10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}},
@@ -223,7 +223,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 10,
 	}},
-	{scenario: "TC21", in: []int{2, 170, 3, 9, 4, 9}, out: Expected{
+	{scenario: "TC21", in: []int{2, 170, 3, 9, 4, 9}, out: expected{
 		impressionCount: 9,
 		freeTime:        125,
 		output:          [][2]int64{{5, 5}, {5, 5}, {5, 5}, {5, 5}, {5, 5}, {5, 5}, {5, 5}, {5, 5}, {5, 5}},
@@ -233,7 +233,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 5,
 	}},
-	{scenario: "TC23", in: []int{118, 124, 4, 17, 6, 15}, out: Expected{
+	{scenario: "TC23", in: []int{118, 124, 4, 17, 6, 15}, out: expected{
 		impressionCount: 12,
 		freeTime:        0,
 		output:          [][2]int64{{4, 14}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}},
@@ -243,7 +243,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 15,
 	}},
-	{scenario: "TC24", in: []int{134, 134, 60, 90, 2, 3}, out: Expected{
+	{scenario: "TC24", in: []int{134, 134, 60, 90, 2, 3}, out: expected{
 		impressionCount: 2,
 		freeTime:        0,
 		output:          [][2]int64{{60, 69}, {65, 65}},
@@ -253,7 +253,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 60,
 		closedSlotMaxDuration: 90,
 	}},
-	{scenario: "TC25", in: []int{88, 88, 1, 80, 2, 2}, out: Expected{
+	{scenario: "TC25", in: []int{88, 88, 1, 80, 2, 2}, out: expected{
 		impressionCount:       2,
 		freeTime:              0,
 		output:                [][2]int64{{1, 68}, {20, 20}},
@@ -262,7 +262,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 80,
 	}},
-	{scenario: "TC26", in: []int{90, 90, 45, 45, 2, 3}, out: Expected{
+	{scenario: "TC26", in: []int{90, 90, 45, 45, 2, 3}, out: expected{
 		impressionCount:       2,
 		freeTime:              0,
 		output:                [][2]int64{{45, 45}, {45, 45}},
@@ -271,7 +271,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 45,
 		closedSlotMaxDuration: 45,
 	}},
-	{scenario: "TC27", in: []int{5, 90, 2, 45, 2, 3}, out: Expected{
+	{scenario: "TC27", in: []int{5, 90, 2, 45, 2, 3}, out: expected{
 		impressionCount:       3,
 		freeTime:              0,
 		output:                [][2]int64{{30, 30}, {30, 30}, {30, 30}},
@@ -280,7 +280,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 45,
 	}},
-	{scenario: "TC28", in: []int{5, 180, 2, 90, 2, 6}, out: Expected{
+	{scenario: "TC28", in: []int{5, 180, 2, 90, 2, 6}, out: expected{
 		impressionCount:       6,
 		freeTime:              0,
 		output:                [][2]int64{{30, 30}, {30, 30}, {30, 30}, {30, 30}, {30, 30}, {30, 30}},
@@ -289,7 +289,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 90,
 	}},
-	{scenario: "TC29", in: []int{5, 65, 2, 35, 2, 3}, out: Expected{
+	{scenario: "TC29", in: []int{5, 65, 2, 35, 2, 3}, out: expected{
 		impressionCount: 3,
 		freeTime:        0,
 		output:          [][2]int64{{25, 25}, {20, 20}, {20, 20}},
@@ -299,7 +299,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 35,
 	}},
-	{scenario: "TC30", in: []int{123, 123, 34, 34, 3, 3}, out: Expected{
+	{scenario: "TC30", in: []int{123, 123, 34, 34, 3, 3}, out: expected{
 		impressionCount: 3,
 		freeTime:        123,
 		output:          [][2]int64{},
@@ -309,7 +309,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 35,
 		closedSlotMaxDuration: 35,
 	}},
-	{scenario: "TC31", in: []int{123, 123, 31, 31, 3, 3}, out: Expected{
+	{scenario: "TC31", in: []int{123, 123, 31, 31, 3, 3}, out: expected{
 		impressionCount: 3,
 		freeTime:        123,
 		output:          [][2]int64{},
@@ -318,7 +318,7 @@ var impressionsTests = []struct {
 		closedMaxDuration:     125,
 		closedSlotMinDuration: 30,
 		closedSlotMaxDuration: 30,
-	}}, {scenario: "TC32", in: []int{134, 134, 63, 63, 2, 3}, out: Expected{
+	}}, {scenario: "TC32", in: []int{134, 134, 63, 63, 2, 3}, out: expected{
 		impressionCount: 0,
 		freeTime:        134,
 		output:          [][2]int64{},
@@ -328,7 +328,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 65,
 		closedSlotMaxDuration: 65,
 	}},
-	{scenario: "TC33", in: []int{147, 147, 30, 60, 4, 6}, out: Expected{
+	{scenario: "TC33", in: []int{147, 147, 30, 60, 4, 6}, out: expected{
 		impressionCount: 4,
 		freeTime:        0,
 		output:          [][2]int64{{30, 42}, {35, 35}, {35, 35}, {35, 35}},
@@ -338,7 +338,7 @@ var impressionsTests = []struct {
 		closedSlotMinDuration: 30,
 		closedSlotMaxDuration: 60,
 	}},
-	{scenario: "TC34", in: []int{88, 102, 30, 30, 3, 3}, out: Expected{
+	{scenario: "TC34", in: []int{88, 102, 30, 30, 3, 3}, out: expected{
 		impressionCount: 3,
 		freeTime:        12,
 		output:          [][2]int64{{30, 30}, {30, 30}, {30, 30}},
@@ -347,7 +347,7 @@ var impressionsTests = []struct {
 		closedMaxDuration:     100,
 		closedSlotMinDuration: 30,
 		closedSlotMaxDuration: 30,
-	}}, {scenario: "TC35", in: []int{88, 102, 30, 42, 3, 3}, out: Expected{
+	}}, {scenario: "TC35", in: []int{88, 102, 30, 42, 3, 3}, out: expected{
 		impressionCount: 0,
 		freeTime:        102,
 		output:          [][2]int64{},
@@ -389,8 +389,8 @@ func BenchmarkGetImpressions(b *testing.B) {
 	}
 }
 
-func newTestPod(podMinDuration, podMaxDuration int64, slotMinDuration, slotMaxDuration, minAds, maxAds int) *TestAdPod {
-	testPod := TestAdPod{}
+func newTestPod(podMinDuration, podMaxDuration int64, slotMinDuration, slotMaxDuration, minAds, maxAds int) *testAdPod {
+	testPod := testAdPod{}
 
 	pod := openrtb_ext.VideoAdPod{}
 
