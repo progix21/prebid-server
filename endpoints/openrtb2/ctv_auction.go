@@ -503,7 +503,7 @@ func (deps *ctvEndpointDeps) getBids(resp *openrtb.BidResponse) {
 		vseat = nil
 
 		for j := range seat.Bid {
-			bid := seat.Bid[j]
+			bid := &seat.Bid[j]
 
 			if len(bid.ID) == 0 || bid.Price == 0 {
 				//filter invalid bids
@@ -517,6 +517,22 @@ func (deps *ctvEndpointDeps) getBids(resp *openrtb.BidResponse) {
 				continue
 			}
 
+			//adding duration
+			if sequenceNumber > 0 {
+				duration, _ := jsonparser.GetInt(bid.Ext, "prebid", "video", "duration")
+				if duration <= 0 {
+					//if sequenceNumber > 0 {
+					duration = deps.impData[index].Config[sequenceNumber-1].MaxDuration
+					//} else {
+					//	duration = deps.request.Imp[index].Video.MaxDuration
+					//}
+					raw, err := jsonparser.Set(bid.Ext, []byte(strconv.Itoa(int(duration))), "prebid", "video", "duration")
+					if nil == err {
+						bid.Ext = raw
+					}
+				}
+			}
+
 			if len(deps.impData[index].Config) == 0 {
 				//adding pure video bids
 				if vseat == nil {
@@ -527,18 +543,18 @@ func (deps *ctvEndpointDeps) getBids(resp *openrtb.BidResponse) {
 					}
 					deps.videoSeats = append(deps.videoSeats, vseat)
 				}
-				vseat.Bid = append(vseat.Bid, bid)
+				vseat.Bid = append(vseat.Bid, *bid)
 			} else {
 				//Adding adpod bids
 				adpodBid, ok := result[originalImpID]
 				if !ok {
 					adpodBid = &AdPodBid{
 						OriginalImpID: originalImpID,
-						SeatName:      "pubmatic",
+						SeatName:      "prebid_ctv",
 					}
 					result[originalImpID] = adpodBid
 				}
-				adpodBid.Bids = append(adpodBid.Bids, &bid)
+				adpodBid.Bids = append(adpodBid.Bids, bid)
 			}
 		}
 	}
@@ -621,27 +637,29 @@ func (deps *ctvEndpointDeps) createBidResponse(resp *openrtb.BidResponse, adpods
 //getBidResponseExt will return extension object
 func (deps *ctvEndpointDeps) getBidResponseExt(resp *openrtb.BidResponse) json.RawMessage {
 	type config struct {
-		ImpID string            `json:"impid"`
-		Imp   []*ImpAdPodConfig `json:"imp,omitempty"`
+		Imp []*ImpAdPodConfig `json:"imp,omitempty"`
 	}
 	type ext struct {
 		Response openrtb.BidResponse `json:"bidresponse,omitempty"`
-		Config   []config            `json:"config,omitempty"`
+		Config   map[string]*config  `json:"config,omitempty"`
 	}
 
 	_ext := ext{
 		Response: *resp,
-		Config:   make([]config, len(deps.impData)),
+		Config:   make(map[string]*config, len(deps.impData)),
 	}
 
 	for index, imp := range deps.impData {
-		_ext.Config[index].ImpID = deps.request.Imp[index].ID
-		_ext.Config[index].Imp = imp.Config[:]
+		if len(imp.Config) > 0 {
+			_ext.Config[deps.request.Imp[index].ID] = &config{
+				Imp: imp.Config[:],
+			}
+		}
 	}
 
 	for i := range resp.SeatBid {
 		for j := range resp.SeatBid[i].Bid {
-			resp.SeatBid[i].Bid[j].AdM = ""
+			resp.SeatBid[i].Bid[j].AdM = `<VAST version="2.0"/>`
 		}
 	}
 
