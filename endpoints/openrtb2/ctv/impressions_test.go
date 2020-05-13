@@ -392,21 +392,38 @@ var impressionsTests = []struct {
 		closedMaxDuration:     90,
 		closedSlotMinDuration: 20,
 		closedSlotMaxDuration: 45,
+	}}, {scenario: "TC40", in: []int{95, 95, 5, 45, 10, 10}, out: Expected{
+		impressionCount: 10,
+		freeTime:        0,
+		output:          [][2]int64{{10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {5, 5}},
+
+		closedMinDuration:     95,
+		closedMaxDuration:     95,
+		closedSlotMinDuration: 5,
+		closedSlotMaxDuration: 45,
+	}}, {scenario: "TC41", in: []int{95, 123, 5, 45, 13, 13}, out: Expected{
+		impressionCount: 0,
+		freeTime:        123,
+		output:          [][2]int64{},
+
+		closedMinDuration:     95,
+		closedMaxDuration:     120,
+		closedSlotMinDuration: 5,
+		closedSlotMaxDuration: 45,
 	}},
 }
 
 func TestGetImpressions(t *testing.T) {
 	for _, impTest := range impressionsTests {
+		if impTest.scenario != "TC41" {
+			continue
+		}
 		t.Run(impTest.scenario, func(t *testing.T) {
 			p := newTestPod(int64(impTest.in[0]), int64(impTest.in[1]), impTest.in[2], impTest.in[3], impTest.in[4], impTest.in[5])
 			cfg, _ := getImpressions(p.podMinDuration, p.podMaxDuration, p.vPod)
 			expected := impTest.out
 
-<<<<<<< HEAD
-			// assert.Equal(t, expected.impressionCount, len(cfg.Slots), "Expected impression count = %v . But Found %v", expectedImpressionCount, len(pod.Slots))
-=======
 			// assert.Equal(t, expected.impressionCount, len(pod.Slots), "Expected impression count = %v . But Found %v", expectedImpressionCount, len(pod.Slots))
->>>>>>> UOE-5060
 			assert.Equal(t, expected.freeTime, cfg.freeTime, "Expected Free Time = %v . But Found %v", expected.freeTime, cfg.freeTime)
 			assert.Equal(t, expected.closedMinDuration, cfg.podMinDuration, "Expected closedMinDuration= %v . But Found %v", expected.closedMinDuration, cfg.podMinDuration)
 			assert.Equal(t, expected.closedMaxDuration, cfg.podMaxDuration, "Expected closedMinDuration= %v . But Found %v", expected.closedMaxDuration, cfg.podMaxDuration)

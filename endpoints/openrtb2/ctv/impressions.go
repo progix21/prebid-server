@@ -26,6 +26,7 @@ type adPodConfig struct {
 	Slots                    [][2]int64 // Holds Minimum and Maximum duration (in seconds) for each Ad Slot. Length indicates total number of Ad Slots/ Impressions for given Ad Pod
 	totalSlotTime            *int64     // Total Sum of all Ad Slot durations (in seconds)
 	freeTime                 int64      // Remaining Time (in seconds) not allocated. It is compared with RequestedPodMaxDuration
+	slotsWithZeroTime        *int64     // Indicates number of slots with zero time (starting from 1).
 }
 
 // Value use to compute Ad Slot Durations and Pod Durations for internal computation
@@ -98,17 +99,31 @@ func getImpressions(podMinDuration, podMaxDuration int64, vPod openrtb_ext.Video
 	timeForEachSlot := computeTimeForEachAdSlot(cfg, totalAds)
 
 	cfg.Slots = make([][2]int64, totalAds)
+	cfg.slotsWithZeroTime = new(int64)
+	*cfg.slotsWithZeroTime = totalAds
 	log.Printf("Plotted Ad Slots / Impressions of size = %v\n", len(cfg.Slots))
 	// iterate over total time till it is < cfg.RequestedPodMaxDuration
 	time := int64(0)
 	log.Printf("Started allocating durations to each Ad Slot / Impression\n")
+	fillZeroSlotsOnPriority := true
+	noOfZeroSlotsFilledByLastRun := int64(0)
 	for time < cfg.requestedPodMaxDuration {
-		adjustedTime, slotsFull := cfg.addTime(timeForEachSlot)
+		adjustedTime, slotsFull := cfg.addTime(timeForEachSlot, fillZeroSlotsOnPriority)
 		time += adjustedTime
 		timeForEachSlot = computeTimeLeastValue(cfg.requestedPodMaxDuration - time)
 		if slotsFull {
 			log.Printf("All slots are full of their capacity. validating slots\n")
 			break
+		}
+
+		// instruct for filling zero capacity slots on priority if
+		// 1. shouldAdjustSlotWithZeroDuration returns true
+		// 2. there are slots with 0 duration
+		// 3. there is at least ont slot with zero duration filled by last iteration
+		fillZeroSlotsOnPriority = false
+		noOfZeroSlotsFilledByLastRun = *cfg.slotsWithZeroTime - noOfZeroSlotsFilledByLastRun
+		if cfg.shouldAdjustSlotWithZeroDuration() && *cfg.slotsWithZeroTime > 0 && noOfZeroSlotsFilledByLastRun > 0 {
+			fillZeroSlotsOnPriority = true
 		}
 	}
 	log.Printf("Completed allocating durations to each Ad Slot / Impression\n")
@@ -284,7 +299,7 @@ func (config *adPodConfig) validateSlots() {
 //  4. Keeps track of TotalSlotDuration when each new time is added to the Ad Slot
 //  5. Keeps track of difference between computed PodMaxDuration and RequestedPodMaxDuration (TestCase #16) and used in step #2 above
 // Returns argument 1 indicating total time adusted, argument 2 whether all slots are full of duration capacity
-func (config adPodConfig) addTime(timeForEachSlot int64) (int64, bool) {
+func (config adPodConfig) addTime(timeForEachSlot int64, fillZeroSlotsOnPriority bool) (int64, bool) {
 	time := int64(0)
 
 	// iterate over each ad
@@ -298,8 +313,10 @@ func (config adPodConfig) addTime(timeForEachSlot int64) (int64, bool) {
 		// 3. if sum(slot time) +  timeForEachSlot  <= config.RequestedPodMaxDuration
 		canAdjustTime := (slot[0]+timeForEachSlot) <= config.requestedSlotMaxDuration && (slot[0]+timeForEachSlot) >= config.requestedSlotMinDuration
 		totalSlotTimeWithNewTimeLessThanRequestedPodMaxDuration := *config.totalSlotTime+timeForEachSlot <= config.requestedPodMaxDuration
-		//maxPodDurationMatchUpTime := config.requestedPodMaxDuration - config.podMaxDuration
-		if slot[0] <= config.slotMaxDuration && canAdjustTime && totalSlotTimeWithNewTimeLessThanRequestedPodMaxDuration {
+
+		// if fillZeroSlotsOnPriority= true ensure current slot value =  0
+		allowCurrentSlot := !fillZeroSlotsOnPriority || (fillZeroSlotsOnPriority && slot[0] == 0)
+		if slot[0] <= config.slotMaxDuration && canAdjustTime && totalSlotTimeWithNewTimeLessThanRequestedPodMaxDuration && allowCurrentSlot {
 			slot[0] += timeForEachSlot
 
 			// if we are adjusting the free time which will match up with config.RequestedPodMaxDuration
@@ -309,6 +326,12 @@ func (config adPodConfig) addTime(timeForEachSlot int64) (int64, bool) {
 			if timeForEachSlot < multipleOf {
 				// override existing value of slot[0] here
 				slot[0] = config.requestedSlotMinDuration
+			}
+
+			// check if this slot duration was zero
+			if slot[1] == 0 {
+				// decrememt config.slotsWithZeroTime as we added some time for this slot
+				*config.slotsWithZeroTime--
 			}
 
 			slot[1] += timeForEachSlot
@@ -400,4 +423,14 @@ func getClosetFactorForMaxDuration(maxduration, multipleOf int64) int64 {
 	}
 
 	return closedMaxDuration
+}
+
+//shouldAdjustSlotWithZeroDuration - returns if slot with zero durations should be filled
+// Currently it will return true in following condition
+// cfg.minAds = cfg.maxads (i.e. Exact number of ads are required)
+func (config adPodConfig) shouldAdjustSlotWithZeroDuration() bool {
+	if config.minAds == config.maxAds {
+		return true
+	}
+	return false
 }
