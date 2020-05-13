@@ -1,9 +1,8 @@
 package ctv
 
 import (
+	"log"
 	"testing"
-
-	"github.com/influxdata/influxdb/pkg/testing/assert"
 )
 
 var testBidResponseMaxDurations = []struct {
@@ -20,19 +19,34 @@ var testBidResponseMaxDurations = []struct {
 		responseMaxDurations: []int64{14},
 		podMinDuration:       10, podMaxDuration: 14, minAds: 1, maxAds: 2,
 		combinations: [][]int64{{14}}},
+	{
+		scenario:             "Multi_Value",
+		responseMaxDurations: []int64{1, 2, 3, 4, 5},
+		podMinDuration:       10, podMaxDuration: 14, minAds: 1, maxAds: 2,
+		combinations: [][]int64{{14}}},
+	{
+		scenario:             "Multi_Value_1",
+		responseMaxDurations: []int64{4, 5, 8, 7},
+		podMinDuration:       10, podMaxDuration: 14, minAds: 1, maxAds: 2,
+		combinations: [][]int64{{14}}},
 }
 
 func TestAdSlotCombination(t *testing.T) {
-	for _, testBidReseponseMaxDuration := range testBidResponseMaxDurations {
-		expectedCombinations := testBidReseponseMaxDuration.combinations
-		t.Run(testBidReseponseMaxDuration.scenario, func(t *testing.T) {
-			slotDurations := AdSlotDurationCombinations{}
-			assert.Equal(t, len(slotDurations.combinations), len(expectedCombinations))
-			for i := 0; i < len(expectedCombinations); i++ {
-				if slotDurations.HasNext() {
-					assert.Equal(t, slotDurations.Next(), expectedCombinations[i])
-				}
+	for _, test := range testBidResponseMaxDurations {
+		if test.scenario != "Multi_Value_1" {
+			continue
+		}
+
+		t.Run(test.scenario, func(t *testing.T) {
+			c := new(AdSlotDurationCombinations)
+			c.Init(test.podMinDuration, test.podMaxDuration, test.minAds, test.maxAds, test.responseMaxDurations)
+			log.Printf("Input = %v", test.responseMaxDurations)
+			for c.HasNext() {
+				c.Next()
+				//comb := c.Next()
+				//fmt.Println(comb)
 			}
+
 		})
 	}
 }
