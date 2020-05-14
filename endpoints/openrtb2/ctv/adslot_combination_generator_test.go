@@ -7,7 +7,7 @@ import (
 
 var testBidResponseMaxDurations = []struct {
 	scenario             string
-	responseMaxDurations []int64
+	responseMaxDurations []uint64
 	podMinDuration       int64 // Pod Minimum duration value present in origin Video Ad Pod Request
 	podMaxDuration       int64 // Pod Maximum duration value present in origin Video Ad Pod Request
 	minAds               int64 // Minimum Ads value present in origin Video Ad Pod Request
@@ -16,18 +16,18 @@ var testBidResponseMaxDurations = []struct {
 }{
 	{
 		scenario:             "Single_Value",
-		responseMaxDurations: []int64{14},
+		responseMaxDurations: []uint64{14},
 		podMinDuration:       10, podMaxDuration: 14, minAds: 1, maxAds: 2,
 		combinations: [][]int64{{14}}},
 	{
 		scenario:             "Multi_Value",
-		responseMaxDurations: []int64{1, 2, 3, 4, 5},
+		responseMaxDurations: []uint64{1, 2, 3, 4, 5},
 		podMinDuration:       10, podMaxDuration: 14, minAds: 1, maxAds: 2,
 		combinations: [][]int64{{14}}},
 	{
 		scenario:             "Multi_Value_1",
-		responseMaxDurations: []int64{4, 5, 8, 7},
-		podMinDuration:       10, podMaxDuration: 14, minAds: 1, maxAds: 5,
+		responseMaxDurations: []uint64{4, 5, 8, 7},
+		podMinDuration:       10, podMaxDuration: 14, minAds: 1, maxAds: 20,
 		combinations: [][]int64{{14}}},
 }
 
