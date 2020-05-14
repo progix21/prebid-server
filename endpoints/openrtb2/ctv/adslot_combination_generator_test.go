@@ -1,6 +1,7 @@
 package ctv
 
 import (
+	"fmt"
 	"log"
 	"testing"
 )
@@ -27,7 +28,7 @@ var testBidResponseMaxDurations = []struct {
 	{
 		scenario:             "Multi_Value_1",
 		responseMaxDurations: []uint64{4, 5, 8, 7},
-		podMinDuration:       10, podMaxDuration: 14, minAds: 1, maxAds: 20,
+		podMinDuration:       10, podMaxDuration: 14, minAds: 1, maxAds: 4,
 		combinations: [][]int64{{14}}},
 }
 
@@ -42,9 +43,9 @@ func TestAdSlotCombination(t *testing.T) {
 			c.Init(test.podMinDuration, test.podMaxDuration, test.minAds, test.maxAds, test.responseMaxDurations)
 			log.Printf("Input = %v", test.responseMaxDurations)
 			for c.HasNext() {
-				c.Next()
-				//comb := c.Next()
-				//fmt.Println(comb)
+				// c.Next()
+				comb := c.Next()
+				fmt.Println(comb)
 			}
 
 		})

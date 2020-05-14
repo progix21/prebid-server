@@ -48,13 +48,10 @@ func (c *AdSlotDurationCombinations) Next() []uint64 {
 
 func (c *AdSlotDurationCombinations) next() []uint64 {
 	for i := 0; i < len(c.slotDurations); i++ {
-		c.currentCombination = make([]uint64, 1)
-		c.currentCombination[0] = c.slotDurations[i]
-		c.currentCombinationCount++
-		print("%v", c.currentCombination)
-		base := make([]uint64, 0)
-		base = c.currentCombination
-		c.generateSubTree(uint64(i), base)
+		newComb := make([]uint64, 1)
+		newComb[0] = c.slotDurations[i]
+		updateCurrentCombination(c, newComb)
+		generateSubTree(c, i)
 	}
 	print("Total combinations generated = %v", c.currentCombinationCount)
 	print("Total combinations expected = %v", c.totalExpectedCombinations)
@@ -69,21 +66,9 @@ func (c *AdSlotDurationCombinations) generateSubTree(slotIndex uint64, baseCombi
 	}
 
 	for i := int(slotIndex); i < len(c.slotDurations); i++ {
-		// c.currentCombination = make([]uint64, 1)
-		// c.currentCombination[0] = c.slotDurations[slotIndex]
-		newComb := append(baseCombination, c.slotDurations[i])
-		// if len(newComb) > len(c.slotDurations) {
-		// 	return
-		// }
-		if c.currentCombinationCount == 5915 {
-			fmt.Println("5915")
-		}
-		c.currentCombination = newComb
-		c.currentCombinationCount++
-		print("%v", c.currentCombination)
-		base := make([]uint64, 0)
-		base = c.currentCombination
-		c.generateSubTree(uint64(i), base)
+		newCombination := append(baseCombination, c.slotDurations[i])
+		updateCurrentCombination(c, newCombination)
+		generateSubTree(c, i)
 	}
 }
 
@@ -132,4 +117,16 @@ func fact(no uint64) big.Int {
 func print(format string, v ...interface{}) {
 	// log.Printf(format, v...)
 	fmt.Printf(format+"\n", v...)
+}
+
+func updateCurrentCombination(c *AdSlotDurationCombinations, newCombination []uint64) {
+	c.currentCombination = newCombination
+	c.currentCombinationCount++
+	print("%v", c.currentCombination)
+}
+
+func generateSubTree(c *AdSlotDurationCombinations, slotIndex int) {
+	base := make([]uint64, 0)
+	base = c.currentCombination
+	c.generateSubTree(uint64(slotIndex), base)
 }
