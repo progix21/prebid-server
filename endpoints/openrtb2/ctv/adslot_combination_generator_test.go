@@ -26,9 +26,11 @@ var testBidResponseMaxDurations = []struct {
 		podMinDuration:       10, podMaxDuration: 14, minAds: 1, maxAds: 2,
 		combinations: [][]int64{{14}}},
 	{
+
+		// 4 - c1, c2,    :  5 - c3 : 6 - c4, c5,  8 : c7
 		scenario:             "Multi_Value_1",
 		responseMaxDurations: []uint64{4, 5, 8, 7},
-		podMinDuration:       10, podMaxDuration: 14, minAds: 1, maxAds: 4,
+		podMinDuration:       10, podMaxDuration: 14, minAds: 3, maxAds: 50,
 		combinations: [][]int64{{14}}},
 }
 
@@ -43,11 +45,13 @@ func TestAdSlotCombination(t *testing.T) {
 			c.Init(test.podMinDuration, test.podMaxDuration, test.minAds, test.maxAds, test.responseMaxDurations)
 			log.Printf("Input = %v", test.responseMaxDurations)
 			for c.HasNext() {
-				// c.Next()
+				//c.Next()
 				comb := c.Next()
-				fmt.Println(comb)
+				fmt.Print(comb, "\n")
 			}
 
+			print("Total combinations generated = %v", c.currentCombinationCount)
+			print("Total combinations expected = %v", c.totalExpectedCombinations)
 		})
 	}
 }
