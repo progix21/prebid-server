@@ -59,8 +59,8 @@ func (c *AdSlotDurationCombinations) Init(podMindDuration, podMaxDuration, minAd
 //returns empty array if next combination is not present
 func (c *AdSlotDurationCombinations) Next() []uint64 {
 	// iteratePolicy = 1. dfs 2.bfs
-	return c.next()
-	//return c.lazyNext()
+	//return c.next()
+	return c.lazyNext()
 }
 
 func (c *AdSlotDurationCombinations) lazyNext() []uint64 {
