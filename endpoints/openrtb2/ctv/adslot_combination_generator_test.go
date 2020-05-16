@@ -29,8 +29,8 @@ var testBidResponseMaxDurations = []struct {
 
 		// 4 - c1, c2,    :  5 - c3 : 6 - c4, c5,  8 : c7
 		scenario:             "Multi_Value_1",
-		responseMaxDurations: []uint64{4, 5, 8, 7},
-		podMinDuration:       10, podMaxDuration: 14, minAds: 3, maxAds: 5,
+		responseMaxDurations: []uint64{4, 5},
+		podMinDuration:       10, podMaxDuration: 14, minAds: 3, maxAds: 1,
 		combinations: [][]int64{{14}}},
 }
 
