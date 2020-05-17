@@ -142,18 +142,22 @@ func (c *AdSlotDurationCombinations) search(slotIndex uint64 /*, baseCombination
 	}
 
 	baseCombination = base
+	maxCombinationLength := int(c.maxAds)
 
 	// stop when total length of base combination
 	// is equal  to maxads
 	if uint64(len(baseCombination)) == c.maxAds {
-		if !doRecursion {
-
-		} else {
+		if doRecursion {
 			return
 		}
+
 	}
 
 	for i := int(slotIndex); i < len(c.slotDurations); i++ {
+
+		// if !doRecursion && i == len(c.slotDurations)-1 && uint64(len(baseCombination)) == c.maxAds {
+		// 	baseCombination = baseCombination[:len(baseCombination)-1]
+		// }
 		newCombination := append(baseCombination, c.slotDurations[i])
 
 		// fmt.Printf("Level: %v, Base Comb  : %v\t:: ", recCount, baseCombination)
@@ -169,11 +173,10 @@ func (c *AdSlotDurationCombinations) search(slotIndex uint64 /*, baseCombination
 			c.state.baseCombination = newCombination
 
 			// maxCombinationLength := len(c.slotDurations)
-			maxCombinationLength := int(c.maxAds)
 
 			// if len(newCombination) = len(input slot array)
 			// then increment last index by 1 till  it  not reaches = len(input slot array)) -1
-			if len(newCombination) == maxCombinationLength && i+1 < maxCombinationLength {
+			if len(newCombination) == maxCombinationLength && i < maxCombinationLength {
 				c.state.baseCombination = c.state.baseCombination[:len(c.state.baseCombination)-1]
 				c.state.currentSlotIndex++
 				determineSlotIndex(c, newCombination, baseCombination, maxCombinationLength)
@@ -183,7 +186,7 @@ func (c *AdSlotDurationCombinations) search(slotIndex uint64 /*, baseCombination
 			// then reset c.state.currentSlotIndex
 			// but not to previous one
 			// e.g. 4 5 8 7 if previous is 4 then now it must be 5
-			if i+1 == maxCombinationLength || maxCombinationLength == 1 {
+			if i == maxCombinationLength || maxCombinationLength == 1 {
 				if len(newCombination) == maxCombinationLength {
 
 					// c.state.baseCombination = c.state.baseCombination[:len(c.state.baseCombination)-2]
