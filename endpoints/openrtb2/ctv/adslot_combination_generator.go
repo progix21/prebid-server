@@ -62,7 +62,7 @@ func (c *AdSlotDurationCombinations) Init(podMindDuration, podMaxDuration, minAd
 	// using configurationss
 	c.totalExpectedCombinations = compute(c, c.maxAds, true)
 	// c.combinations = make([][]uint64, c.totalExpectedCombinations)
-
+	print("Allow Repeatation = %v", c.allowRepetitationsForEligibleDurations)
 	print("Total possible combinations (without validations) = %v ", c.totalExpectedCombinations)
 }
 

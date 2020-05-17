@@ -119,12 +119,20 @@ var testBidResponseMaxDurations = []struct {
 		podMinDuration:       10, podMaxDuration: 14, minAds: 3, maxAds: 4,
 		combinations:                           [][]int64{{14}},
 		allowRepetitationsForEligibleDurations: false,
+	}, {
+
+		// 4 - c1, c2,    :  5 - c3 : 6 - c4, c5,  8 : c7
+		scenario:             "TC13-max_ads = input = 10-without-repeatation",
+		responseMaxDurations: []uint64{25, 30, 76, 10, 88, 34, 37, 67, 89, 45},
+		podMinDuration:       10, podMaxDuration: 14, minAds: 3, maxAds: 10,
+		combinations:                           [][]int64{{14}},
+		allowRepetitationsForEligibleDurations: true,
 	},
 }
 
 func TestAdSlotCombination(t *testing.T) {
 	for _, test := range testBidResponseMaxDurations {
-		if test.scenario != "TC6-max_ads (20 ads) > input_bid_durations-repeatation_not_allowed" {
+		if test.scenario != "TC13-max_ads = input = 10-without-repeatation" {
 			continue
 		}
 
