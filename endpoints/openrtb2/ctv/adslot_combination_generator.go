@@ -44,7 +44,7 @@ type snapshot struct {
 }
 
 // Init ...
-func (c *AdSlotDurationCombinations) Init(podMindDuration, podMaxDuration, minAds, maxAds int64, slotDurations []uint64) {
+func (c *AdSlotDurationCombinations) Init(podMindDuration, podMaxDuration, minAds, maxAds int64, slotDurations []uint64, allowRepetitationsForEligibleDurations bool) {
 	c.noOfSlots = len(c.slotDurations)
 	c.podMinDuration = uint64(podMindDuration)
 	c.podMaxDuration = uint64(podMaxDuration)
@@ -56,7 +56,7 @@ func (c *AdSlotDurationCombinations) Init(podMindDuration, podMaxDuration, minAd
 	c.state.currentSlotIndex = 0
 	c.currentCombination = new([]uint64)
 	// default configurations
-	c.allowRepetitationsForEligibleDurations = true
+	c.allowRepetitationsForEligibleDurations = allowRepetitationsForEligibleDurations
 
 	// compute no of possible combinations (without validations)
 	// using configurationss
@@ -128,13 +128,18 @@ func compute(c *AdSlotDurationCombinations, computeCombinationForTotalAds uint64
 		//       r! (n - r)!
 		n := uint64(len(c.slotDurations))
 		r := computeCombinationForTotalAds
-
+		if r > n {
+			noOfCombinations = big.NewInt(0)
+			print("Can not generate combination for maxads = %v, with  %v input bid response durations and repeatations allowed", r, n)
+			return noOfCombinations.Uint64()
+		}
 		numerator := fact(n)
 		d1 := fact(r)
 		d2 := fact(n - r)
 		denominator := d1.Mul(&d1, &d2)
 		noOfCombinations = numerator.Div(&numerator, denominator)
 	}
+
 	print("%v", noOfCombinations)
 	if recursion {
 		return noOfCombinations.Uint64() + compute(c, computeCombinationForTotalAds-1, recursion)
@@ -182,6 +187,10 @@ func updateCurrentCombination(c *AdSlotDurationCombinations, newCombination []ui
 }
 
 func (c *AdSlotDurationCombinations) search(slotIndex uint64 /*, baseCombination []uint64*/, doRecursion bool, recCount int) {
+
+	if c.totalExpectedCombinations <= 0 {
+		return
+	}
 
 	var baseCombination []uint64
 

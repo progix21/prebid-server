@@ -9,13 +9,14 @@ import (
 )
 
 var testBidResponseMaxDurations = []struct {
-	scenario             string
-	responseMaxDurations []uint64
-	podMinDuration       int64 // Pod Minimum duration value present in origin Video Ad Pod Request
-	podMaxDuration       int64 // Pod Maximum duration value present in origin Video Ad Pod Request
-	minAds               int64 // Minimum Ads value present in origin Video Ad Pod Request
-	maxAds               int64 // Maximum Ads value present in origin Video Ad Pod Request
-	combinations         [][]int64
+	scenario                               string
+	responseMaxDurations                   []uint64
+	podMinDuration                         int64 // Pod Minimum duration value present in origin Video Ad Pod Request
+	podMaxDuration                         int64 // Pod Maximum duration value present in origin Video Ad Pod Request
+	minAds                                 int64 // Minimum Ads value present in origin Video Ad Pod Request
+	maxAds                                 int64 // Maximum Ads value present in origin Video Ad Pod Request
+	combinations                           [][]int64
+	allowRepetitationsForEligibleDurations bool
 }{
 	{
 		scenario:             "TC1-Single_Value",
@@ -73,6 +74,16 @@ var testBidResponseMaxDurations = []struct {
 	{
 
 		// 4 - c1, c2,    :  5 - c3 : 6 - c4, c5,  8 : c7
+		scenario:             "TC8-max_ads (20 ads) > input_bid_durations (no repitations)",
+		responseMaxDurations: []uint64{4, 5, 8, 7},
+		podMinDuration:       10, podMaxDuration: 14, minAds: 3, maxAds: 20,
+		combinations:                           [][]int64{{14}},
+		allowRepetitationsForEligibleDurations: false, // no repeitations
+	},
+
+	{
+
+		// 4 - c1, c2,    :  5 - c3 : 6 - c4, c5,  8 : c7
 		scenario:             "TC9-max_ads = input_bid_durations = 4",
 		responseMaxDurations: []uint64{4, 4, 4, 4},
 		podMinDuration:       10, podMaxDuration: 14, minAds: 3, maxAds: 4,
@@ -95,17 +106,19 @@ var testBidResponseMaxDurations = []struct {
 
 func TestAdSlotCombination(t *testing.T) {
 	for _, test := range testBidResponseMaxDurations {
-		if test.scenario != "TC11-max_ads =5-input-empty" {
+		if test.scenario != "TC8-max_ads (20 ads) > input_bid_durations (no repitations)" {
 			continue
 		}
 
 		t.Run(test.scenario, func(t *testing.T) {
 			c := new(AdSlotDurationCombinations)
-			c.Init(test.podMinDuration, test.podMaxDuration, test.minAds, test.maxAds, test.responseMaxDurations)
+			d := new(AdSlotDurationCombinations)
+
 			log.Printf("Input = %v", test.responseMaxDurations)
 
-			d := new(AdSlotDurationCombinations)
-			d.Init(test.podMinDuration, test.podMaxDuration, test.minAds, test.maxAds, test.responseMaxDurations)
+			c.Init(test.podMinDuration, test.podMaxDuration, test.minAds, test.maxAds, test.responseMaxDurations, test.allowRepetitationsForEligibleDurations)
+			d.Init(test.podMinDuration, test.podMaxDuration, test.minAds, test.maxAds, test.responseMaxDurations, test.allowRepetitationsForEligibleDurations)
+
 			d.next()
 			expectedOutput := d.combinations
 			var lazyLoadOutput = make([][]uint64, d.totalExpectedCombinations)
@@ -122,17 +135,19 @@ func TestAdSlotCombination(t *testing.T) {
 				cnt++
 			}
 
-			// compare results
-			for i := uint64(0); i < uint64(len(expectedOutput)); i++ {
-				for j := uint64(0); j < uint64(len(expectedOutput[i])); j++ {
+			if expectedOutput != nil {
+				// compare results
+				for i := uint64(0); i < uint64(len(expectedOutput)); i++ {
+					for j := uint64(0); j < uint64(len(expectedOutput[i])); j++ {
 
-					if expectedOutput[i][j] == lazyLoadOutput[i][j] {
-					} else {
-						assert.Fail(t, "expectedOutput[", i, "][", j, "] != lazyLoadOutput[", i, "][", j, "] ", expectedOutput[i][j], " !=", lazyLoadOutput[i][j])
+						if expectedOutput[i][j] == lazyLoadOutput[i][j] {
+						} else {
+							assert.Fail(t, "expectedOutput[", i, "][", j, "] != lazyLoadOutput[", i, "][", j, "] ", expectedOutput[i][j], " !=", lazyLoadOutput[i][j])
 
+						}
 					}
-				}
 
+				}
 			}
 
 			//assert.Equal(t, expectedOutput, lazyLoadOutput)
