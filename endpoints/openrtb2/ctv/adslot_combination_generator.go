@@ -226,18 +226,30 @@ func (c *AdSlotDurationCombinations) search(slotIndex uint64 /*, baseCombination
 			// present in baseCombination
 			// only in consecutive manner
 			_, exists := find(baseCombination, c.slotDurations[i])
-			if exists {
+			if exists && doRecursion {
 				continue // with next elememt
 			}
 
-			if !doRecursion {
-				c.state.currentSlotIndex = i
+			if exists {
+				//if len(newCombination) == maxCombinationLength && i < maxCombinationLength {
+				c.state.baseCombination = c.state.baseCombination[:len(c.state.baseCombination)-1]
+				c.state.currentSlotIndex++
+				if c.state.currentSlotIndex == len(c.slotDurations) {
+					c.state.currentSlotIndex = 0
+					newCombination := append(baseCombination, c.slotDurations[i])
+					determineSlotIndex(c, newCombination, baseCombination, maxCombinationLength)
+					baseCombination = c.state.baseCombination
+				}
+
+				i = c.state.currentSlotIndex
+				//}
 			}
 		}
 
 		newCombination := append(baseCombination, c.slotDurations[i])
 
 		// fmt.Printf("Level: %v, Base Comb  : %v\t:: ", recCount, baseCombination)
+
 		fmt.Printf("%v ::\t", baseCombination)
 
 		updateCurrentCombination(c, newCombination, doRecursion)

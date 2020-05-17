@@ -74,6 +74,14 @@ var testBidResponseMaxDurations = []struct {
 	{
 
 		// 4 - c1, c2,    :  5 - c3 : 6 - c4, c5,  8 : c7
+		scenario:             "TC6-max_ads (20 ads) > input_bid_durations-repeatation_not_allowed",
+		responseMaxDurations: []uint64{4, 5, 8, 7},
+		podMinDuration:       10, podMaxDuration: 14, minAds: 3, maxAds: 2,
+		combinations:                           [][]int64{{14}},
+		allowRepetitationsForEligibleDurations: false},
+	{
+
+		// 4 - c1, c2,    :  5 - c3 : 6 - c4, c5,  8 : c7
 		scenario:             "TC8-max_ads (20 ads) > input_bid_durations (no repitations)",
 		responseMaxDurations: []uint64{4, 5, 8, 7},
 		podMinDuration:       10, podMaxDuration: 14, minAds: 3, maxAds: 20,
@@ -102,11 +110,21 @@ var testBidResponseMaxDurations = []struct {
 		responseMaxDurations: []uint64{},
 		podMinDuration:       10, podMaxDuration: 14, minAds: 3, maxAds: 0,
 		combinations: [][]int64{{14}}},
+
+	{
+
+		// 4 - c1, c2,    :  5 - c3 : 6 - c4, c5,  8 : c7
+		scenario:             "TC12-max_ads =5-input-empty-no-repeatation",
+		responseMaxDurations: []uint64{25, 30, 76, 10, 88},
+		podMinDuration:       10, podMaxDuration: 14, minAds: 3, maxAds: 4,
+		combinations:                           [][]int64{{14}},
+		allowRepetitationsForEligibleDurations: false,
+	},
 }
 
 func TestAdSlotCombination(t *testing.T) {
 	for _, test := range testBidResponseMaxDurations {
-		if test.scenario != "TC8-max_ads (20 ads) > input_bid_durations (no repitations)" {
+		if test.scenario != "TC6-max_ads (20 ads) > input_bid_durations-repeatation_not_allowed" {
 			continue
 		}
 
@@ -127,7 +145,7 @@ func TestAdSlotCombination(t *testing.T) {
 				//c.Next()
 				comb := c.Next()
 				//fmt.Print(comb, "\n")
-				fmt.Println("e = ", (expectedOutput)[cnt], " : a = ", comb)
+				fmt.Println("e = ", (expectedOutput)[cnt], "\t : a = ", comb)
 				val := make([]uint64, len(comb))
 				copy(val, comb)
 				lazyLoadOutput[cnt] = val
