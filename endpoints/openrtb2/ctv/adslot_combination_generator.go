@@ -24,6 +24,17 @@ type AdSlotDurationCombinations struct {
 	combinations              [][]uint64 // May contains some/all combinations at given point of time
 
 	state snapshot
+
+	// configurations
+
+	// Indicates whether this algorithm should consider repetitations
+	// For Example: Input durations are 10 23 40 56. For duration 23 there are
+	// multiple ads present. In such case if this value is true, algorithm will generate
+	// repetitations only for 23 duration.
+	// NOTE: Repetitations will be of consecative durations only.
+	// It means 10,23,23,23  10,23,23,56 will be generated
+	// But 10,23,40,23  23, 10, 23, 23 will not be generated
+	allowRepetitationsForEligibleDurations bool
 }
 
 type snapshot struct {
@@ -40,11 +51,17 @@ func (c *AdSlotDurationCombinations) Init(podMindDuration, podMaxDuration, minAd
 	c.minAds = uint64(minAds)
 	c.maxAds = uint64(maxAds)
 	c.slotDurations = slotDurations
-	c.totalExpectedCombinations = compute(c, c.maxAds, true)
 	c.currentCombinationCount = 0
 	c.state = snapshot{}
 	c.state.currentSlotIndex = 0
 	c.currentCombination = new([]uint64)
+	// default configurations
+	c.allowRepetitationsForEligibleDurations = true
+
+	// compute no of possible combinations (without validations)
+	// using configurationss
+	c.totalExpectedCombinations = compute(c, c.maxAds, true)
+	// c.combinations = make([][]uint64, c.totalExpectedCombinations)
 
 	print("Total possible combinations (without validations) = %v ", c.totalExpectedCombinations)
 }
@@ -87,18 +104,37 @@ func compute(c *AdSlotDurationCombinations, computeCombinationForTotalAds uint64
 	if computeCombinationForTotalAds == 0 {
 		return 0
 	}
-	// Formula
-	//		(r + n - 1)!
-	//      ------------
-	//       r! (n - 1)!
-	n := uint64(len(c.slotDurations))
-	r := uint64(computeCombinationForTotalAds)
-	d1 := fact(uint64(r))
-	d2 := fact(n - 1)
-	d3 := d1.Mul(&d1, &d2)
-	nmrt := fact(r + n - 1)
 
-	noOfCombinations := nmrt.Div(&nmrt, d3)
+	var noOfCombinations *big.Int
+
+	if c.allowRepetitationsForEligibleDurations {
+		// Formula
+		//		(r + n - 1)!
+		//      ------------
+		//       r! (n - 1)!
+		n := uint64(len(c.slotDurations))
+		r := uint64(computeCombinationForTotalAds)
+		d1 := fact(uint64(r))
+		d2 := fact(n - 1)
+		d3 := d1.Mul(&d1, &d2)
+		nmrt := fact(r + n - 1)
+
+		noOfCombinations = nmrt.Div(&nmrt, d3)
+	} else {
+		// compute combintations without repitition
+		// Formula (Pure combination Formula)
+		//			 n!
+		//      ------------
+		//       r! (n - r)!
+		n := uint64(len(c.slotDurations))
+		r := computeCombinationForTotalAds
+
+		numerator := fact(n)
+		d1 := fact(r)
+		d2 := fact(n - r)
+		denominator := d1.Mul(&d1, &d2)
+		noOfCombinations = numerator.Div(&numerator, denominator)
+	}
 	print("%v", noOfCombinations)
 	if recursion {
 		return noOfCombinations.Uint64() + compute(c, computeCombinationForTotalAds-1, recursion)
@@ -125,29 +161,46 @@ func print(format string, v ...interface{}) {
 }
 
 func updateCurrentCombination(c *AdSlotDurationCombinations, newCombination []uint64, doRecursion bool) {
+
 	*c.currentCombination = newCombination
-	c.currentCombinationCount++
+
 	if doRecursion {
+		//*c.combinations = append(*c.combinations, *c.currentCombination)
+		if c.currentCombinationCount == 64 {
+			fmt.Println("test")
+		}
+
 		print("%v", *c.currentCombination)
+		val := make([]uint64, len(*c.currentCombination))
+		copy(val, *c.currentCombination)
+		//c.combinations[c.currentCombinationCount] = val
+		c.combinations = append(c.combinations, val)
+
 	}
+
+	c.currentCombinationCount++
 }
 
 func (c *AdSlotDurationCombinations) search(slotIndex uint64 /*, baseCombination []uint64*/, doRecursion bool, recCount int) {
 
 	var baseCombination []uint64
 
-	base := make([]uint64, 0)
-	if c.maxAds > 1 {
-		base = *c.currentCombination
-	}
+	// base := make([]uint64, 0)
+	// if c.maxAds > 1 {
+	// 	base = *c.currentCombination
+	// }
 
-	baseCombination = base
+	baseCombination = *c.currentCombination
 	maxCombinationLength := int(c.maxAds)
 
 	// stop when total length of base combination
 	// is equal  to maxads
 	if uint64(len(baseCombination)) == c.maxAds {
-		if doRecursion {
+
+		if !doRecursion {
+			baseCombination = c.state.baseCombination[:len(c.state.baseCombination)-1]
+		} else {
+
 			return
 		}
 
@@ -158,6 +211,21 @@ func (c *AdSlotDurationCombinations) search(slotIndex uint64 /*, baseCombination
 		// if !doRecursion && i == len(c.slotDurations)-1 && uint64(len(baseCombination)) == c.maxAds {
 		// 	baseCombination = baseCombination[:len(baseCombination)-1]
 		// }
+
+		if !c.allowRepetitationsForEligibleDurations {
+			// check if c.slotDurations[i] value is already
+			// present in baseCombination
+			// only in consecutive manner
+			_, exists := find(baseCombination, c.slotDurations[i])
+			if exists {
+				continue // with next elememt
+			}
+
+			if !doRecursion {
+				c.state.currentSlotIndex = i
+			}
+		}
+
 		newCombination := append(baseCombination, c.slotDurations[i])
 
 		// fmt.Printf("Level: %v, Base Comb  : %v\t:: ", recCount, baseCombination)
@@ -170,6 +238,7 @@ func (c *AdSlotDurationCombinations) search(slotIndex uint64 /*, baseCombination
 			c.search(uint64(i), doRecursion, recCount+1)
 		} else {
 			// store base combination
+
 			c.state.baseCombination = newCombination
 
 			// maxCombinationLength := len(c.slotDurations)
@@ -186,8 +255,9 @@ func (c *AdSlotDurationCombinations) search(slotIndex uint64 /*, baseCombination
 			// then reset c.state.currentSlotIndex
 			// but not to previous one
 			// e.g. 4 5 8 7 if previous is 4 then now it must be 5
-			if i == maxCombinationLength || maxCombinationLength == 1 {
-				if len(newCombination) == maxCombinationLength {
+			// i > maxCombinationLength : require when e.g. maxads =2, input = 5 len
+			if i >= maxCombinationLength /*|| maxCombinationLength == 1*/ {
+				if len(newCombination) >= maxCombinationLength {
 
 					// c.state.baseCombination = c.state.baseCombination[:len(c.state.baseCombination)-2]
 					c.state.currentSlotIndex++
@@ -277,4 +347,13 @@ func determineSlotIndex(c *AdSlotDurationCombinations, newCombination, baseCombi
 		c.state.baseCombination = baseCombination[:upperRange]
 	}
 	return upperRange
+}
+
+func find(array []uint64, element uint64) (int, bool) {
+	for index, aE := range array {
+		if aE == element {
+			return index, true
+		}
+	}
+	return -1, false
 }
