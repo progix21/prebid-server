@@ -443,7 +443,7 @@ func (c *AdSlotDurationCombinations) search1(data []uint64, start, index, r uint
 		c.combinations = append(c.combinations, data1)
 		// println("")
 		// fmt.Println(c.currentCombinationCount, " :: index	=", index, ", i=", start, " :: slot = ", data)
-		fmt.Println(data1)
+		//fmt.Println(data1)
 		c.state.valueUpdated = true
 		return data1
 
@@ -571,7 +571,7 @@ func updateState(c *AdSlotDurationCombinations, lazyLoad bool, r uint64, reursio
 				}
 				c.state.start = c.state.combinationCounter
 			} else {
-				fmt.Println("Must be end of r ", r)
+				// fmt.Println("Must be end of r ", r)
 			}
 		}
 
