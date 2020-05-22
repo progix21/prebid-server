@@ -32,14 +32,14 @@ var testBidResponseMaxDurations = []struct {
 		// 4 - c1, c2,    :  5 - c3 : 6 - c4, c5,  8 : c7
 		scenario:             "TC3-max_ads = input_bid_durations",
 		responseMaxDurations: []string{"4::2", "5::2", "8::2", "7::2"},
-		podMinDuration:       10, podMaxDuration: 14, minAds: 5, maxAds: 5,
+		podMinDuration:       10, podMaxDuration: 50, minAds: 2, maxAds: 5,
 		combinations: [][]int64{{14}}},
 	{
 
 		// 4 - c1, c2,    :  5 - c3 : 6 - c4, c5,  8 : c7
 		scenario:             "TC4-max_ads < input_bid_durations (test 1)",
 		responseMaxDurations: []string{"4::2", "5::2", "8::2", "7::2"},
-		podMinDuration:       10, podMaxDuration: 14, minAds: 3, maxAds: 3,
+		podMinDuration:       10, podMaxDuration: 17, minAds: 3, maxAds: 3,
 		combinations: [][]int64{{14}}},
 	{
 
@@ -114,7 +114,7 @@ var testBidResponseMaxDurations = []struct {
 		// 4 - c1, c2,    :  5 - c3 : 6 - c4, c5,  8 : c7
 		scenario:             "TC12-max_ads =5-input-empty-no-repeatation",
 		responseMaxDurations: []string{"25::2", "30::2", "76::2", "10::2", "88::2"},
-		podMinDuration:       10, podMaxDuration: 14, minAds: 3, maxAds: 4,
+		podMinDuration:       10, podMaxDuration: 229, minAds: 1, maxAds: 4,
 		combinations: [][]int64{{14}},
 	}, {
 
@@ -122,6 +122,26 @@ var testBidResponseMaxDurations = []struct {
 		scenario:             "TC13-max_ads = input = 10-without-repeatation",
 		responseMaxDurations: []string{"25::2", "30::2", "76::2", "10::2", "88::2", "34::2", "37::2", "67::2", "89::2", "45::2"},
 		podMinDuration:       10, podMaxDuration: 14, minAds: 3, maxAds: 10,
+		combinations: [][]int64{{14}},
+	}, {
+
+		scenario:             "TC14-single duration: single ad",
+		responseMaxDurations: []string{"15::1"},
+		podMinDuration:       10, podMaxDuration: 15, minAds: 1, maxAds: 5,
+		combinations: [][]int64{{14}}},
+	{
+
+		// 4 - c1, c2,    :  5 - c3 : 6 - c4, c5,  8 : c7
+		scenario:             "TC15-exact-pod-duration",
+		responseMaxDurations: []string{"25::2", "30::2", "76::2", "10::2", "88::2"},
+		podMinDuration:       200, podMaxDuration: 200, minAds: 8, maxAds: 10,
+		combinations: [][]int64{{14}},
+	},
+
+	{
+		scenario:             "TC16-50ads",
+		responseMaxDurations: []string{"25::2", "30::2", "76::2", "10::2", "88::2"},
+		podMinDuration:       200, podMaxDuration: 200, minAds: 10, maxAds: 50,
 		combinations: [][]int64{{14}},
 	},
 }
@@ -135,7 +155,7 @@ func TestAdSlotCombinationWithRepeatations(t *testing.T) {
 func coreTest(t *testing.T, allowRepeatation bool) {
 	for _, test := range testBidResponseMaxDurations {
 
-		if test.scenario != "TC1-Single_Value" {
+		if test.scenario != "TC7-max_ads > input_bid_durations (test 1)" {
 			continue
 		}
 
@@ -143,29 +163,26 @@ func coreTest(t *testing.T, allowRepeatation bool) {
 			c := new(AdSlotDurationCombinations)
 			log.Printf("Input = %v", test.responseMaxDurations)
 
-			// durationAdsInfoMap := make([]string, len(test.responseMaxDurations))
-			// cnt := 0
-			// for index, duration := range test.responseMaxDurations {
-			// 	noOfAds := "2"
-			// 	if index == 2 || index == 3 {
-			// 		noOfAds = "1" // only one ad. Hence repeatition is now allwed
-			// 	}
-			// 	durationAdsInfoMap[cnt] = strconv.Itoa(int(duration)) + "::" + noOfAds
-			// 	cnt++
-			// }
 			c.Init(test.podMinDuration, test.podMaxDuration, test.minAds, test.maxAds, test.responseMaxDurations, allowRepeatation)
 
 			expectedOutput := c.search1tr()
 
+			// determine expected size of expected output
+			// subtract invalid combinations size
+
 			actualOutput := make([][]uint64, len(expectedOutput))
 
 			cnt := 0
-			for c.HasNext() {
+			// for c.HasNext() {
+			for true {
 				//c.Next()
 				comb := c.Next()
-				//comb := c.search1trlazy()
+				if comb == nil || len(comb) == 0 {
+					break
+				}
+				print("%v", comb)
 				//fmt.Print("count = ", c.currentCombinationCount, " :: ", comb, "\n")
-				//	fmt.Println("e = ", (expectedOutput)[cnt], "\t : a = ", comb)
+				//fmt.Println("e = ", (expectedOutput)[cnt], "\t : a = ", comb)
 				val := make([]uint64, len(comb))
 				copy(val, comb)
 				actualOutput[cnt] = val
@@ -196,6 +213,8 @@ func coreTest(t *testing.T, allowRepeatation bool) {
 			print("config = %v", test)
 			print("Total combinations generated = %v", c.currentCombinationCount)
 			print("Total valid combinations  = %v", c.validCombinationCount)
+			print("Total repeated combinations  = %v", c.repeatationsCount)
+			print("Total outofrange combinations  = %v", c.outOfRangeCount)
 			print("Total combinations expected = %v", c.totalExpectedCombinations)
 		})
 	}

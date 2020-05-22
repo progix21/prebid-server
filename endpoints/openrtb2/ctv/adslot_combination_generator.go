@@ -1,7 +1,7 @@
 package ctv
 
 import (
-	"fmt"
+	"log"
 	"math/big"
 	"strconv"
 	"strings"
@@ -19,11 +19,23 @@ type AdSlotDurationCombinations struct {
 	slotDurationAdMap map[uint64]uint64 // map of key = duration, value = no of creatives with given duration
 	noOfSlots         int               // Number of slots to be consider (from left to right)
 
+	//key - number of ads, ranging from 1 to maxads given in request config
+	//value - containing no of combinations with repeatation each key can have (without validations)
+	combinationCountMap map[uint64]uint64
+
 	// cursors
 	currentCombinationCount int
 	validCombinationCount   int
+	// no of combinations not considered because
+	// containing some/all durations for which only single ad is present
+	repeatationsCount int
 
-	totalExpectedCombinations uint64     // indicates total number for possible combinations
+	// no of combinations out of range because not satisfied pod min and max range
+	outOfRangeCount int
+
+	// indicates total number for possible combinations without validations
+	// but subtracts repeatations for duration with single ad
+	totalExpectedCombinations uint64
 	combinations              [][]uint64 // May contains some/all combinations at given point of time
 
 	state snapshot
@@ -76,7 +88,7 @@ func (c *AdSlotDurationCombinations) Init(podMindDuration, podMaxDuration, minAd
 		// save durations
 		duration, err := strconv.Atoi(info[0])
 		if err != nil {
-			print("Error in determining duration")
+			print("Error in determining duration :  %v", err)
 			return
 		}
 
@@ -84,7 +96,7 @@ func (c *AdSlotDurationCombinations) Init(podMindDuration, podMaxDuration, minAd
 		// save duration  and no of ads info
 		noOfAds, err := strconv.Atoi(info[1])
 		if err != nil {
-			print("Error in determining duration")
+			print("Error in determining duration : %v", err)
 			return
 		}
 		c.slotDurationAdMap[uint64(duration)] = uint64(noOfAds)
@@ -99,9 +111,11 @@ func (c *AdSlotDurationCombinations) Init(podMindDuration, podMaxDuration, minAd
 	// default configurations
 	c.allowRepetitationsForEligibleDurations = allowRepetitationsForEligibleDurations
 
+	c.combinationCountMap = make(map[uint64]uint64, c.maxAds)
 	// compute no of possible combinations (without validations)
 	// using configurationss
 	c.totalExpectedCombinations = compute(c, c.maxAds, true)
+	subtractUnwantedRepeatations(c)
 	// c.combinations = make([][]uint64, c.totalExpectedCombinations)
 	// print("Allow Repeatation = %v", c.allowRepetitationsForEligibleDurations)
 	// print("Total possible combinations (without validations) = %v ", c.totalExpectedCombinations)
@@ -120,11 +134,10 @@ func (c *AdSlotDurationCombinations) Next() []uint64 {
 		reset(c)
 		c.state.resetFlags = false
 	}
-	validComb := true
 	comb := make([]uint64, 0)
-	for c.HasNext() && validComb {
+	for true {
 		comb = c.search1trlazy()
-		if isValidCombination(c, comb) {
+		if len(comb) == 0 || isValidCombination(c, comb) {
 			break
 		}
 	}
@@ -140,7 +153,8 @@ func isValidCombination(c *AdSlotDurationCombinations, combination []uint64) boo
 		// check if this duration value is greater than 1 and also only 1 ad is present for
 		// this duration
 		if repeationMap[uint64(duration)] > 1 && c.slotDurationAdMap[uint64(duration)] == 1 {
-			//print("count = %v :: Discarding combination '%v' as only 1 ad is present for duration %v", c.currentCombinationCount, combination, duration)
+			print("count = %v :: Discarding combination '%v' as only 1 ad is present for duration %v", c.currentCombinationCount, combination, duration)
+			c.repeatationsCount++
 			return false
 		}
 
@@ -150,7 +164,8 @@ func isValidCombination(c *AdSlotDurationCombinations, combination []uint64) boo
 
 	if !(totalAdDuration >= c.podMinDuration && totalAdDuration <= c.podMaxDuration) {
 		// totalAdDuration is not within range of Pod min and max duration
-		//print("count = %v :: Discarding combination '%v' as either total Ad duration (%v) < %v (Pod min duration) or > %v (Pod Max duration)", c.currentCombinationCount, combination, totalAdDuration, c.podMinDuration, c.podMaxDuration)
+		print("count = %v :: Discarding combination '%v' as either total Ad duration (%v) < %v (Pod min duration) or > %v (Pod Max duration)", c.currentCombinationCount, combination, totalAdDuration, c.podMinDuration, c.podMaxDuration)
+		c.outOfRangeCount++
 		return false
 	}
 	c.validCombinationCount++
@@ -158,14 +173,35 @@ func isValidCombination(c *AdSlotDurationCombinations, combination []uint64) boo
 }
 
 // HasNext - true if next combination is present
-// false if not
-func (c AdSlotDurationCombinations) HasNext() bool {
-	return uint64(c.currentCombinationCount) < c.totalExpectedCombinations
-	//return uint64(c.currentCombinationCount) < uint64(c.validCombinationCount)
-}
+// false if not. Though HasNext returns true, Next() may return empty array
+// Returning empty array indicates there are no further combinations present
+// func (c *AdSlotDurationCombinations) HasNext() bool {
+// 	if c.state.resetFlags {
+// 		reset(c)
+// 		c.state.resetFlags = false
+// 	}
+// 	// is valid min ads and max ads range
+// 	validAdRange := c.minAds <= c.maxAds
+// 	validPodRange := c.podMinDuration <= c.podMaxDuration
+// 	return uint64(c.currentCombinationCount) < (c.totalExpectedCombinations-uint64(c.getInvalidCombinatioCount())) && validAdRange && validPodRange
+// 	//return uint64(c.currentCombinationCount) < uint64(c.validCombinationCount)
+// }
 
-func compute(c *AdSlotDurationCombinations, computeCombinationForTotalAds uint64, recursion bool) uint64 {
-	if computeCombinationForTotalAds < c.minAds {
+//compute - number of combinations that can be generated based on
+//1. minads
+//2. maxads
+//3. Ordering of durations not matters. i.e. 4,5,6 will not be considered again as 5,4,6 or 6,5,4
+//4. Repeatations are allowed only for those durations where multiple ads are present
+// Sum ups number of combinations for each noOfAds (r) based on above criteria and returns the total
+// It operates recursively
+// c - algorithm config, noOfAds (r) - maxads requested (if recursion=true otherwise any valid value), recursion - whether to do recursion or not. if false then only single combination
+// for given noOfAds will be computed
+func compute(c *AdSlotDurationCombinations, noOfAds uint64, recursion bool) uint64 {
+
+	// can not limit till  c.minAds
+	// because we want to construct
+	// c.combinationCountMap required by subtractUnwantedRepeatations
+	if noOfAds <= 0 {
 		return 0
 	}
 
@@ -177,13 +213,16 @@ func compute(c *AdSlotDurationCombinations, computeCombinationForTotalAds uint64
 		//      ------------
 		//       r! (n - 1)!
 		n := uint64(len(c.slotDurations))
-		r := uint64(computeCombinationForTotalAds)
+		r := uint64(noOfAds)
 		d1 := fact(uint64(r))
 		d2 := fact(n - 1)
 		d3 := d1.Mul(&d1, &d2)
 		nmrt := fact(r + n - 1)
 
 		noOfCombinations = nmrt.Div(&nmrt, d3)
+
+		// store pure combination with repeatation in combinationCountMap
+		c.combinationCountMap[r] = noOfCombinations.Uint64()
 	} else {
 		// compute combintations without repeatation
 		// Formula (Pure combination Formula)
@@ -191,7 +230,7 @@ func compute(c *AdSlotDurationCombinations, computeCombinationForTotalAds uint64
 		//      ------------
 		//       r! (n - r)!
 		n := uint64(len(c.slotDurations))
-		r := computeCombinationForTotalAds
+		r := noOfAds
 		if r > n {
 			noOfCombinations = big.NewInt(0)
 			print("Can not generate combination for maxads = %v, with  %v input bid response durations and repeatations allowed", r, n)
@@ -206,7 +245,14 @@ func compute(c *AdSlotDurationCombinations, computeCombinationForTotalAds uint64
 
 	//print("%v", noOfCombinations)
 	if recursion {
-		return noOfCombinations.Uint64() + compute(c, computeCombinationForTotalAds-1, recursion)
+
+		// add only if it  is  withing limit of c.minads
+		nextLevelCombinations := compute(c, noOfAds-1, recursion)
+		if noOfAds-1 >= c.minAds {
+			sumOfCombinations := noOfCombinations.Add(noOfCombinations, big.NewInt(int64(nextLevelCombinations)))
+			return sumOfCombinations.Uint64()
+		}
+
 	}
 	return noOfCombinations.Uint64()
 }
@@ -225,8 +271,8 @@ func fact(no uint64) big.Int {
 }
 
 func print(format string, v ...interface{}) {
-	// log.Printf(format, v...)
-	fmt.Printf(format+"\n", v...)
+	log.Printf(format, v...)
+	//fmt.Printf(format+"\n", v...)
 }
 
 func (c *AdSlotDurationCombinations) search1tr() [][]uint64 {
@@ -251,6 +297,8 @@ func (c *AdSlotDurationCombinations) search1tr() [][]uint64 {
 func reset(c *AdSlotDurationCombinations) {
 	c.currentCombinationCount = 0
 	c.validCombinationCount = 0
+	c.repeatationsCount = 0
+	c.outOfRangeCount = 0
 }
 
 func (c *AdSlotDurationCombinations) search1trlazy() []uint64 {
@@ -290,8 +338,13 @@ func (c *AdSlotDurationCombinations) search1trlazy() []uint64 {
 		break
 	}
 
-	result := make([]uint64, len(*data))
-	copy(result, *data)
+	var result []uint64
+	if r <= c.maxAds {
+		result = make([]uint64, len(*data))
+		copy(result, *data)
+	} else {
+		result = make([]uint64, 0)
+	}
 	return result
 }
 
@@ -498,4 +551,71 @@ func getOccurance(c *AdSlotDurationCombinations, valToCheck uint64) uint64 {
 		}
 	}
 	return occurance
+}
+
+func subtractUnwantedRepeatations(c *AdSlotDurationCombinations) {
+	// subtract repeatations from noOfCombinations
+	// if not allowed for specific duration
+	repeatingDurations := big.NewInt(0)
+
+	for _, noOfAds := range c.slotDurationAdMap {
+		if noOfAds == 1 {
+			// repeatation is not allowed for given duration
+			// get how many repeation can have for the duration
+			// at given level r = no of ads
+
+			// Logic - to find repeatation for given duration at level r
+			// 1. if r = 1 - repeatition = 0 for any duration
+			// 2. if r = 2 - repeatition = 1 for any duration
+			// 3. if r >= 3 - repeatition = noOfCombinations(r) - noOfCombinations(r-2)
+			// For example,
+			/*
+				n = 4    r = 1      repeat = 4     no-repeat = 4        0	0	0	0
+				n = 4    r = 2      repeat = 10    no-repeat = 6        1	1	1	1
+				n = 4    r = 3      repeat = 20    no-repeat = 4		4	4	4	4
+				n = 4    r = 4      repeat = 35    no-repeat = 1		10	10	10	10
+
+
+																		4	5	8	7	18
+				n = 5    r = 1      repeat = 5     no-repeat = 5        0	0	0	0	0
+				n = 5    r = 2      repeat = 15    no-repeat = 10       1	1	1	1	1
+				n = 5    r = 3      repeat = 35    no-repeat = 10		5	5	5	5	5
+				n = 5    r = 4      repeat = 70    no-repeat = 5		15	15	15	15	15
+				n = 5    r = 5      repeat = 126   no-repeat = 1		35	35	35	35	35
+				n = 5    r = 6      repeat = 210   no-repeat = xxx
+
+
+
+				if r = 1 => r1rpt = 0
+				if r = 2 => r2rpt = 1
+
+				if r >= 3
+
+				r3rpt = comb(r3 - 2)
+				r4rpt = comb(r4 - 2)
+			*/
+			for r := c.minAds; r <= c.maxAds; r++ {
+				if r == 1 {
+					continue // 0 to be subtracted
+				}
+				if r == 2 {
+					repeatingDurations = repeatingDurations.Add(repeatingDurations, big.NewInt(1))
+					continue
+				}
+
+				// r >= 3
+				repeatingDurations = repeatingDurations.Add(repeatingDurations, big.NewInt(int64(c.combinationCountMap[r-2])))
+			}
+
+		}
+	}
+
+	c.totalExpectedCombinations -= repeatingDurations.Uint64()
+}
+
+// getInvalidCombinatioCount returns no of invalid combination due to one of the following reason
+// 1. Contains repeatition of durations, which has only one ad with it
+// 2. Sum of duration (combinationo) is out of Pod Min or Pod Max duration
+func (c *AdSlotDurationCombinations) getInvalidCombinatioCount() int {
+	return c.repeatationsCount + c.outOfRangeCount
 }
