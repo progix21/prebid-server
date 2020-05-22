@@ -24,6 +24,7 @@ type AdSlotDurationCombinations struct {
 	combinationCountMap map[uint64]uint64
 
 	// cursors
+	// current combination count generated out of totalExpectedCombinations
 	currentCombinationCount int
 	validCombinationCount   int
 	// no of combinations not considered because
@@ -49,7 +50,7 @@ type AdSlotDurationCombinations struct {
 	// NOTE: Repetitations will be of consecative durations only.
 	// It means 10,23,23,23  10,23,23,56 will be generated
 	// But 10,23,40,23  23, 10, 23, 23 will not be generated
-	allowRepetitationsForEligibleDurations bool
+	// allowRepetitationsForEligibleDurations bool
 }
 
 type snapshot struct {
@@ -68,7 +69,7 @@ type snapshot struct {
 }
 
 // Init ...
-func (c *AdSlotDurationCombinations) Init(podMindDuration, podMaxDuration, minAds, maxAds int64, durationAdsMap []string, allowRepetitationsForEligibleDurations bool) {
+func (c *AdSlotDurationCombinations) Init(podMindDuration, podMaxDuration, minAds, maxAds int64, durationAdsMap []string) {
 
 	c.podMinDuration = uint64(podMindDuration)
 	c.podMaxDuration = uint64(podMaxDuration)
@@ -108,9 +109,6 @@ func (c *AdSlotDurationCombinations) Init(podMindDuration, podMaxDuration, minAd
 	c.validCombinationCount = 0
 	c.state = snapshot{}
 
-	// default configurations
-	c.allowRepetitationsForEligibleDurations = allowRepetitationsForEligibleDurations
-
 	c.combinationCountMap = make(map[uint64]uint64, c.maxAds)
 	// compute no of possible combinations (without validations)
 	// using configurationss
@@ -136,7 +134,7 @@ func (c *AdSlotDurationCombinations) Next() []uint64 {
 	}
 	comb := make([]uint64, 0)
 	for true {
-		comb = c.search1trlazy()
+		comb = c.lazyNext()
 		if len(comb) == 0 || isValidCombination(c, comb) {
 			break
 		}
@@ -150,10 +148,12 @@ func isValidCombination(c *AdSlotDurationCombinations, combination []uint64) boo
 	totalAdDuration := uint64(0)
 	for _, duration := range combination {
 		repeationMap[uint64(duration)]++
-		// check if this duration value is greater than 1 and also only 1 ad is present for
-		// this duration
-		if repeationMap[uint64(duration)] > 1 && c.slotDurationAdMap[uint64(duration)] == 1 {
-			print("count = %v :: Discarding combination '%v' as only 1 ad is present for duration %v", c.currentCombinationCount, combination, duration)
+		// check current combination contains repeating durations such that
+		// count(duration) > count(no of ads aunction engine received for the duration)
+		currentRepeationCnt := repeationMap[uint64(duration)]
+		noOfAdsPresent := c.slotDurationAdMap[uint64(duration)]
+		if currentRepeationCnt > noOfAdsPresent {
+			print("count = %v :: Discarding combination '%v' as only '%v' ad is present for duration %v", c.currentCombinationCount, combination, noOfAdsPresent, duration)
 			c.repeatationsCount++
 			return false
 		}
@@ -172,21 +172,6 @@ func isValidCombination(c *AdSlotDurationCombinations, combination []uint64) boo
 	return true
 }
 
-// HasNext - true if next combination is present
-// false if not. Though HasNext returns true, Next() may return empty array
-// Returning empty array indicates there are no further combinations present
-// func (c *AdSlotDurationCombinations) HasNext() bool {
-// 	if c.state.resetFlags {
-// 		reset(c)
-// 		c.state.resetFlags = false
-// 	}
-// 	// is valid min ads and max ads range
-// 	validAdRange := c.minAds <= c.maxAds
-// 	validPodRange := c.podMinDuration <= c.podMaxDuration
-// 	return uint64(c.currentCombinationCount) < (c.totalExpectedCombinations-uint64(c.getInvalidCombinatioCount())) && validAdRange && validPodRange
-// 	//return uint64(c.currentCombinationCount) < uint64(c.validCombinationCount)
-// }
-
 //compute - number of combinations that can be generated based on
 //1. minads
 //2. maxads
@@ -204,45 +189,21 @@ func compute(c *AdSlotDurationCombinations, noOfAds uint64, recursion bool) uint
 	if noOfAds <= 0 {
 		return 0
 	}
-
 	var noOfCombinations *big.Int
+	// Formula
+	//		(r + n - 1)!
+	//      ------------
+	//       r! (n - 1)!
+	n := uint64(len(c.slotDurations))
+	r := uint64(noOfAds)
+	d1 := fact(uint64(r))
+	d2 := fact(n - 1)
+	d3 := d1.Mul(&d1, &d2)
+	nmrt := fact(r + n - 1)
 
-	if c.allowRepetitationsForEligibleDurations {
-		// Formula
-		//		(r + n - 1)!
-		//      ------------
-		//       r! (n - 1)!
-		n := uint64(len(c.slotDurations))
-		r := uint64(noOfAds)
-		d1 := fact(uint64(r))
-		d2 := fact(n - 1)
-		d3 := d1.Mul(&d1, &d2)
-		nmrt := fact(r + n - 1)
-
-		noOfCombinations = nmrt.Div(&nmrt, d3)
-
-		// store pure combination with repeatation in combinationCountMap
-		c.combinationCountMap[r] = noOfCombinations.Uint64()
-	} else {
-		// compute combintations without repeatation
-		// Formula (Pure combination Formula)
-		//			 n!
-		//      ------------
-		//       r! (n - r)!
-		n := uint64(len(c.slotDurations))
-		r := noOfAds
-		if r > n {
-			noOfCombinations = big.NewInt(0)
-			print("Can not generate combination for maxads = %v, with  %v input bid response durations and repeatations allowed", r, n)
-			return noOfCombinations.Uint64()
-		}
-		numerator := fact(n)
-		d1 := fact(r)
-		d2 := fact(n - r)
-		denominator := d1.Mul(&d1, &d2)
-		noOfCombinations = numerator.Div(&numerator, denominator)
-	}
-
+	noOfCombinations = nmrt.Div(&nmrt, d3)
+	// store pure combination with repeatation in combinationCountMap
+	c.combinationCountMap[r] = noOfCombinations.Uint64()
 	//print("%v", noOfCombinations)
 	if recursion {
 
@@ -257,6 +218,8 @@ func compute(c *AdSlotDurationCombinations, noOfAds uint64, recursion bool) uint
 	return noOfCombinations.Uint64()
 }
 
+//fact computes factorial of given number.
+// It is used by compute function
 func fact(no uint64) big.Int {
 	if no == 0 {
 		return *big.NewInt(int64(1))
@@ -270,20 +233,24 @@ func fact(no uint64) big.Int {
 	return *mult
 }
 
+// wrapper around print function
 func print(format string, v ...interface{}) {
 	log.Printf(format, v...)
-	//fmt.Printf(format+"\n", v...)
 }
 
-func (c *AdSlotDurationCombinations) search1tr() [][]uint64 {
+//searchAll - searches all valid combinations
+// valid combinations are those which satisifies following
+// 1. sum of duration is within range of pod min and max values
+// 2. Each duration within combination honours number of ads value given in the request
+// 3. Number of durations in combination are within range of min and max ads
+func (c *AdSlotDurationCombinations) searchAll() [][]uint64 {
 	reset(c)
 	start := uint64(0)
 	index := uint64(0)
 
-	merged := c.combinations
 	for r := c.minAds; r <= c.maxAds; r++ {
 		data := make([]uint64, r)
-		c.search1(data, start, index, r, merged, false, 0)
+		c.search(data, start, index, r, false, 0)
 	}
 	// print("Total combinations generated = %v", c.currentCombinationCount)
 	// print("Total combinations expected = %v", c.totalExpectedCombinations)
@@ -294,6 +261,7 @@ func (c *AdSlotDurationCombinations) search1tr() [][]uint64 {
 	return result
 }
 
+//reset the internal counters
 func reset(c *AdSlotDurationCombinations) {
 	c.currentCombinationCount = 0
 	c.validCombinationCount = 0
@@ -301,20 +269,21 @@ func reset(c *AdSlotDurationCombinations) {
 	c.outOfRangeCount = 0
 }
 
-func (c *AdSlotDurationCombinations) search1trlazy() []uint64 {
-
-	//	merged := make([][]uint64, c.totalExpectedCombinations)
+//lazyNext performs stateful iteration. Instead of returning all valid combinations
+//in one gp, it will return each combination on demand basis.
+// valid combinations are those which satisifies following
+// 1. sum of duration is within range of pod min and max values
+// 2. Each duration within combination honours number of ads value given in the request
+// 3. Number of durations in combination are within range of min and max ads
+func (c *AdSlotDurationCombinations) lazyNext() []uint64 {
 	start := c.state.start
 	index := c.state.index
 	r := c.state.r
-
 	// reset last combination
 	// by deleting previous values
 	if c.state.lastCombination == nil {
 		c.combinations = make([][]uint64, 0)
 	}
-	merged := c.combinations
-	// data := make([]uint64, r)
 	data := new([]uint64)
 	data = &c.state.lastCombination
 	if *data == nil || uint64(len(*data)) != r {
@@ -324,14 +293,7 @@ func (c *AdSlotDurationCombinations) search1trlazy() []uint64 {
 	c.state.valueUpdated = false
 	c.state.repeatingCombinationsSkipped = 0
 	for ; r <= c.maxAds; r++ {
-
-		//common change
-		//index = index + 1
-		if c.allowRepetitationsForEligibleDurations {
-		} else {
-			// start = start + 1
-		}
-		c.search1(*data, start, uint64(index), r, merged, true, 0)
+		c.search(*data, start, uint64(index), r, true, 0)
 		c.state.stateUpdated = false // reset
 		c.state.valueUpdated = false
 		c.state.repeatingCombinationsSkipped = 0
@@ -348,10 +310,8 @@ func (c *AdSlotDurationCombinations) search1trlazy() []uint64 {
 	return result
 }
 
-//
-//static void combinationUtil(
-//	int arr[], int data[], int start, int end, int index, int r)
-func (c *AdSlotDurationCombinations) search1(data []uint64, start, index, r uint64, merged [][]uint64, lazyLoad bool, reursionCount int) []uint64 {
+//search generates the combinations based on min and max number of ads
+func (c *AdSlotDurationCombinations) search(data []uint64, start, index, r uint64, lazyLoad bool, reursionCount int) []uint64 {
 
 	end := uint64(len(c.slotDurations) - 1)
 
@@ -359,8 +319,6 @@ func (c *AdSlotDurationCombinations) search1(data []uint64, start, index, r uint
 	if index == r {
 		data1 := make([]uint64, len(data))
 		for j := uint64(0); j < r; j++ {
-			// fmt.Print(data[j])
-			// fmt.Print(" ")
 			data1[j] = data[j]
 		}
 		appendComb := true
@@ -371,63 +329,30 @@ func (c *AdSlotDurationCombinations) search1(data []uint64, start, index, r uint
 			c.combinations = append(c.combinations, data1)
 			c.currentCombinationCount++
 		}
-		// println("")
-		// fmt.Println(c.currentCombinationCount, " :: index	=", index, ", i=", start, " :: slot = ", data)
-		//fmt.Println(data1)
+		//print("%v", data1)
 		c.state.valueUpdated = true
 		return data1
 
 	}
 
-	if c.allowRepetitationsForEligibleDurations {
-		for i := start; i <= end && end+1+c.maxAds >= r-index; i++ {
-			if shouldUpdateAndReturn(c, start, index, r, merged, lazyLoad, reursionCount, i, end) {
-				return data
-			}
-			data[index] = c.slotDurations[i]
-			//fmt.Println(c.currentCombinationCount, " :: index =", index, ", recursioncnt = ", reursionCount, ", i=", start, " :: slot = ", data)
-
-			currentDuration := i
-			// increment duration when
-			// 1. duration has only single ad
-			// 2. data[index] contains that ad and now going to set same duration on next index
-			// if c.slotDurationAdMap[c.slotDurations[i]] == 1 && index+1 < r && data[index] == c.slotDurations[i] {
-			// 	// no repeations
-			// 	currentDuration = i + 1
-			// 	c.state.repeatingCombinationsSkipped++
-			// }
-
-			c.search1(data, currentDuration, index+1, r, merged, lazyLoad, reursionCount+1)
+	for i := start; i <= end && end+1+c.maxAds >= r-index; i++ {
+		if shouldUpdateAndReturn(c, start, index, r, lazyLoad, reursionCount, i, end) {
+			return data
 		}
-	} else {
-
-		// replace index with all possible elements. The condition
-		// "end-i+1 >= r-index" makes sure that including one element
-		// at index will make a combination with remaining elements
-		// at remaining positions
-
-		for i := start; i <= end && end-i+1 >= r-index; i++ {
-			if shouldUpdateAndReturn(c, start, index, r, merged, lazyLoad, reursionCount, i, end) {
-				return data
-			}
-			data[index] = c.slotDurations[i]
-			//fmt.Println(c.currentCombinationCount, " :: index =", index, ", recursioncnt = ", reursionCount, ", i=", start, " :: slot = ", data)
-			c.search1(data, i+1, index+1, r, merged, lazyLoad, reursionCount+1)
-
-		}
+		data[index] = c.slotDurations[i]
+		currentDuration := i
+		c.search(data, currentDuration, index+1, r, lazyLoad, reursionCount+1)
 	}
 
 	if lazyLoad && !c.state.stateUpdated {
 		c.state.combinationCounter++
 		index = uint64(c.state.index) - 1 + c.state.repeatingCombinationsSkipped
-		//index = uint64(c.state.index) - 1
 		updateState(c, lazyLoad, r, reursionCount, end, c.state.combinationCounter, index, c.slotDurations[end])
-
 	}
 	return data
 }
 
-// assuming arr contains unique values
+// getNextElement assuming arr contains unique values
 // other wise next elemt will be returned when first matching value of val found
 // returns nextValue and its index
 func getNextElement(arr []uint64, val uint64) (uint64, uint64) {
@@ -440,19 +365,12 @@ func getNextElement(arr []uint64, val uint64) (uint64, uint64) {
 	return 0, 0
 }
 
+// updateState - is used in case of lazy loading
+// It maintains the state of iterator by updating the required flags
 func updateState(c *AdSlotDurationCombinations, lazyLoad bool, r uint64, reursionCount int, end uint64, i uint64, index uint64, valueAtEnd uint64) {
 
-	//valueAtEnd := c.slotDurations[end]
-
-	// if lazyLoad && uint64(reursionCount) == r-1 {
 	if lazyLoad {
-
-		// set index
-
-		// c.state.start = c.state.combinationCounter
-
 		c.state.start += c.state.repeatingCombinationsSkipped
-
 		c.state.start = i
 		// set c.state.index = 0 when
 		// lastCombination contains, number X len(input) - 1 times starting from last index
@@ -482,37 +400,9 @@ func updateState(c *AdSlotDurationCombinations, lazyLoad bool, r uint64, reursio
 				}
 				c.state.start = c.state.combinationCounter
 			} else {
-				// fmt.Println("Must be end of r ", r)
+				// end of r
 			}
 		}
-
-		// Use case: lastCombination (To be given outside) contains duplicate durations
-		// for which only single ad is present
-		// when above  for loop inside search1 not able to detect repeatations
-		// for the durations, which contains only 1 ad
-		// While developing, it is typically observed at the end of each  combination
-
-		// check if the duration excepts only single ad
-		/*if occurance > 1 && c.slotDurationAdMap[valueAtEnd] == 1 {
-			//adjust lastduration
-			i := int64(occurance)
-			for ; i < int64(len(c.state.lastCombination)); i++ {
-				c.state.lastCombination[i] = c.slotDurations[c.state.start]
-			}
-			c.state.start++
-			c.state.index = i - 1
-			c.state.combinationCounter++
-
-			// check if slot value w.r.t. c.state.start has only single ad
-			// in such case call update state to get next combination
-			valueAtEnd := c.slotDurations[c.state.start-1]
-			for c.slotDurationAdMap[valueAtEnd] == 1 {
-				updateState(c, lazyLoad, r, reursionCount, end, c.state.start, uint64(c.state.index), valueAtEnd)
-				break
-			}
-
-		}*/
-
 		// set r
 		// increament value of r if occurance == r
 		if occurance == r {
@@ -521,28 +411,23 @@ func updateState(c *AdSlotDurationCombinations, lazyLoad bool, r uint64, reursio
 			c.state.combinationCounter = 0
 			c.state.r++
 		}
-
 		c.state.stateUpdated = true
 	}
 }
 
-func shouldUpdateAndReturn(c *AdSlotDurationCombinations, start, index, r uint64, merged [][]uint64, lazyLoad bool, reursionCount int, i, end uint64) bool {
+//shouldUpdateAndReturn checks if states should be updated in case of lazy loading
+//If required it updates the state
+func shouldUpdateAndReturn(c *AdSlotDurationCombinations, start, index, r uint64, lazyLoad bool, reursionCount int, i, end uint64) bool {
 	if lazyLoad && c.state.valueUpdated {
 		if uint64(reursionCount) <= r && !c.state.stateUpdated {
 			updateState(c, lazyLoad, r, reursionCount, end, i, index, c.slotDurations[end])
 		}
-		// if reursionCount == 1 {
-		// 	break
-		// }
-
-		// if i <= end && end+1+c.maxAds >= r-index {
-		// 	_index = uint64(index)
-		// }
 		return true
 	}
 	return false
 }
 
+//getOccurance checks how many time given number is occured in c.state.lastCombination
 func getOccurance(c *AdSlotDurationCombinations, valToCheck uint64) uint64 {
 	occurance := uint64(0)
 	for i := len(c.state.lastCombination) - 1; i >= 0; i-- {
@@ -553,6 +438,8 @@ func getOccurance(c *AdSlotDurationCombinations, valToCheck uint64) uint64 {
 	return occurance
 }
 
+// subtractUnwantedRepeatations ensures subtracting repeating combination counts
+// from combinations count computed by compute fuction for each r = min and max ads range
 func subtractUnwantedRepeatations(c *AdSlotDurationCombinations) {
 	// subtract repeatations from noOfCombinations
 	// if not allowed for specific duration
@@ -609,7 +496,7 @@ func subtractUnwantedRepeatations(c *AdSlotDurationCombinations) {
 
 		}
 	}
-
+	// subtract all repeatations across all minads and maxads combinations count
 	c.totalExpectedCombinations -= repeatingDurations.Uint64()
 }
 

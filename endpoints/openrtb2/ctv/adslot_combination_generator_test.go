@@ -8,61 +8,42 @@ import (
 )
 
 var testBidResponseMaxDurations = []struct {
-	scenario                               string
-	responseMaxDurations                   []string
-	podMinDuration                         int64 // Pod Minimum duration value present in origin Video Ad Pod Request
-	podMaxDuration                         int64 // Pod Maximum duration value present in origin Video Ad Pod Request
-	minAds                                 int64 // Minimum Ads value present in origin Video Ad Pod Request
-	maxAds                                 int64 // Maximum Ads value present in origin Video Ad Pod Request
-	combinations                           [][]int64
-	allowRepetitationsForEligibleDurations string
+	scenario             string
+	responseMaxDurations []string
+	podMinDuration       int64 // Pod Minimum duration value present in origin Video Ad Pod Request
+	podMaxDuration       int64 // Pod Maximum duration value present in origin Video Ad Pod Request
+	minAds               int64 // Minimum Ads value present in origin Video Ad Pod Request
+	maxAds               int64 // Maximum Ads value present in origin Video Ad Pod Request
 }{
 	{
 		scenario:             "TC1-Single_Value",
 		responseMaxDurations: []string{"14::1", "4::3"},
 		podMinDuration:       10, podMaxDuration: 14, minAds: 1, maxAds: 2,
-		combinations: [][]int64{{14}}},
-	{
+	}, {
 		scenario:             "TC2-Multi_Value",
 		responseMaxDurations: []string{"1::2", "2::2", "3::2", "4::2", "5::2"},
 		podMinDuration:       10, podMaxDuration: 14, minAds: 1, maxAds: 2,
-		combinations: [][]int64{{14}}},
-	{
-
-		// 4 - c1, c2,    :  5 - c3 : 6 - c4, c5,  8 : c7
+	}, {
 		scenario:             "TC3-max_ads = input_bid_durations",
 		responseMaxDurations: []string{"4::2", "5::2", "8::2", "7::2"},
 		podMinDuration:       10, podMaxDuration: 50, minAds: 2, maxAds: 5,
-		combinations: [][]int64{{14}}},
-	{
-
-		// 4 - c1, c2,    :  5 - c3 : 6 - c4, c5,  8 : c7
+	}, {
 		scenario:             "TC4-max_ads < input_bid_durations (test 1)",
 		responseMaxDurations: []string{"4::2", "5::2", "8::2", "7::2"},
 		podMinDuration:       10, podMaxDuration: 17, minAds: 3, maxAds: 3,
-		combinations: [][]int64{{14}}},
-	{
-
-		// 4 - c1, c2,    :  5 - c3 : 6 - c4, c5,  8 : c7
+	}, {
 		scenario:             "TC5-max_ads  (1) < input_bid_durations (test 1)",
 		responseMaxDurations: []string{"4::2", "5::2", "8::2", "7::2"},
 		podMinDuration:       10, podMaxDuration: 14, minAds: 3, maxAds: 1,
-		combinations: [][]int64{{14}}},
-
-	{
-
-		// 4 - c1, c2,    :  5 - c3 : 6 - c4, c5,  8 : c7
+	}, {
 		scenario:             "TC6-max_ads < input_bid_durations (test 2)",
 		responseMaxDurations: []string{"4::2", "5::2", "8::2", "7::2"},
 		podMinDuration:       10, podMaxDuration: 14, minAds: 3, maxAds: 2,
-		combinations: [][]int64{{14}}},
-	{
-
-		// 4 - c1, c2,    :  5 - c3 : 6 - c4, c5,  8 : c7
+	}, {
 		scenario:             "TC7-max_ads > input_bid_durations (test 1)",
 		responseMaxDurations: []string{"4::2", "5::1", "8::2", "7::2"},
 		podMinDuration:       10, podMaxDuration: 50, minAds: 4, maxAds: 4,
-		combinations: [][]int64{{14}}},
+	},
 	// {
 
 	// 	// 4 - c1, c2,    :  5 - c3 : 6 - c4, c5,  8 : c7
@@ -76,7 +57,7 @@ var testBidResponseMaxDurations = []struct {
 		scenario:             "TC6-max_ads (20 ads) > input_bid_durations-repeatation_not_allowed",
 		responseMaxDurations: []string{"4::2", "5::2", "8::2", "7::2"},
 		podMinDuration:       10, podMaxDuration: 14, minAds: 3, maxAds: 2,
-		combinations: [][]int64{{14}}},
+	},
 	// {
 
 	// 	// 4 - c1, c2,    :  5 - c3 : 6 - c4, c5,  8 : c7
@@ -95,77 +76,45 @@ var testBidResponseMaxDurations = []struct {
 	// 	podMinDuration:       10, podMaxDuration: 14, minAds: 3, maxAds: 4,
 	// 	combinations: [][]int64{{14}}, allowRepetitationsForEligibleDurations: "true"},
 	{
-
-		// 4 - c1, c2,    :  5 - c3 : 6 - c4, c5,  8 : c7
 		scenario:             "TC10-max_ads 0",
 		responseMaxDurations: []string{"4::2", "4::2", "4::2", "4::2"},
 		podMinDuration:       10, podMaxDuration: 14, minAds: 3, maxAds: 0,
-		combinations: [][]int64{{14}}},
-	{
-
-		// 4 - c1, c2,    :  5 - c3 : 6 - c4, c5,  8 : c7
+	}, {
 		scenario:             "TC11-max_ads =5-input-empty",
 		responseMaxDurations: []string{},
 		podMinDuration:       10, podMaxDuration: 14, minAds: 3, maxAds: 0,
-		combinations: [][]int64{{14}}},
-
-	{
-
-		// 4 - c1, c2,    :  5 - c3 : 6 - c4, c5,  8 : c7
+	}, {
 		scenario:             "TC12-max_ads =5-input-empty-no-repeatation",
 		responseMaxDurations: []string{"25::2", "30::2", "76::2", "10::2", "88::2"},
 		podMinDuration:       10, podMaxDuration: 229, minAds: 1, maxAds: 4,
-		combinations: [][]int64{{14}},
 	}, {
-
-		// 4 - c1, c2,    :  5 - c3 : 6 - c4, c5,  8 : c7
 		scenario:             "TC13-max_ads = input = 10-without-repeatation",
 		responseMaxDurations: []string{"25::2", "30::2", "76::2", "10::2", "88::2", "34::2", "37::2", "67::2", "89::2", "45::2"},
 		podMinDuration:       10, podMaxDuration: 14, minAds: 3, maxAds: 10,
-		combinations: [][]int64{{14}},
 	}, {
-
 		scenario:             "TC14-single duration: single ad",
 		responseMaxDurations: []string{"15::1"},
 		podMinDuration:       10, podMaxDuration: 15, minAds: 1, maxAds: 5,
-		combinations: [][]int64{{14}}},
-	{
-
-		// 4 - c1, c2,    :  5 - c3 : 6 - c4, c5,  8 : c7
+	}, {
 		scenario:             "TC15-exact-pod-duration",
 		responseMaxDurations: []string{"25::2", "30::2", "76::2", "10::2", "88::2"},
 		podMinDuration:       200, podMaxDuration: 200, minAds: 8, maxAds: 10,
-		combinations: [][]int64{{14}},
-	},
-
-	{
+	}, {
 		scenario:             "TC16-50ads",
 		responseMaxDurations: []string{"25::2", "30::2", "76::2", "10::2", "88::2"},
 		podMinDuration:       200, podMaxDuration: 200, minAds: 10, maxAds: 50,
-		combinations: [][]int64{{14}},
 	},
 }
 
 func TestAdSlotCombinationWithRepeatations(t *testing.T) {
-	// set each scenario such that repeatation will be allowed
-	allowRepeatation := true
-	coreTest(t, allowRepeatation)
-}
-
-func coreTest(t *testing.T, allowRepeatation bool) {
 	for _, test := range testBidResponseMaxDurations {
-
-		if test.scenario != "TC7-max_ads > input_bid_durations (test 1)" {
-			continue
-		}
-
 		t.Run(test.scenario, func(t *testing.T) {
 			c := new(AdSlotDurationCombinations)
 			log.Printf("Input = %v", test.responseMaxDurations)
 
-			c.Init(test.podMinDuration, test.podMaxDuration, test.minAds, test.maxAds, test.responseMaxDurations, allowRepeatation)
+			c.Init(test.podMinDuration, test.podMaxDuration, test.minAds, test.maxAds, test.responseMaxDurations)
 
-			expectedOutput := c.search1tr()
+			expectedOutput := c.searchAll()
 
 			// determine expected size of expected output
 			// subtract invalid combinations size
@@ -173,9 +122,7 @@ func coreTest(t *testing.T, allowRepeatation bool) {
 			actualOutput := make([][]uint64, len(expectedOutput))
 
 			cnt := 0
-			// for c.HasNext() {
 			for true {
-				//c.Next()
 				comb := c.Next()
 				if comb == nil || len(comb) == 0 {
 					break
