@@ -39,36 +39,28 @@ type AdSlotDurationCombinations struct {
 	totalExpectedCombinations uint64
 	combinations              [][]uint64 // May contains some/all combinations at given point of time
 
+	// state configurations in case of lazy loading
 	state snapshot
-
-	// configurations
-
-	// Indicates whether this algorithm should consider repetitations
-	// For Example: Input durations are 10 23 40 56. For duration 23 there are
-	// multiple ads present. In such case if this value is true, algorithm will generate
-	// repetitations only for 23 duration.
-	// NOTE: Repetitations will be of consecative durations only.
-	// It means 10,23,23,23  10,23,23,56 will be generated
-	// But 10,23,40,23  23, 10, 23, 23 will not be generated
-	// allowRepetitationsForEligibleDurations bool
 }
 
+// snashot retains the state of iteration
+// it is used in determing when next valid combination is requested
+// using Next() method
 type snapshot struct {
-	/// new states
-	start              uint64
-	index              int64
-	r                  uint64
-	lastCombination    []uint64
-	stateUpdated       bool
-	valueUpdated       bool
-	combinationCounter uint64
-	// indicates how many repeating combinations skipped
-	repeatingCombinationsSkipped uint64
-
-	resetFlags bool
+	start                        uint64   // indicates which duration to be used to form combination
+	index                        int64    // indicates from which index in combination array we should fill duration given by start
+	r                            uint64   // holds the current combination length ranging from minads to maxads
+	lastCombination              []uint64 // holds the last combination iterated
+	stateUpdated                 bool     // flag indicating whether underneath search method updated the c.state values
+	valueUpdated                 bool     // indicates whether search method determined and updated next combination
+	combinationCounter           uint64   // holds the index of duration to be filled when 1 cycle of combination ends
+	repeatingCombinationsSkipped uint64   // indicates how many repeating combinations skipped
+	resetFlags                   bool     // indicates whether the required flags to reset or not
 }
 
-// Init ...
+// Init ...initializes with following
+// 1. Determines the number of combinations to be generated
+// 2. Intializes the c.state values required for c.Next() and iteratoor
 func (c *AdSlotDurationCombinations) Init(podMindDuration, podMaxDuration, minAds, maxAds int64, durationAdsMap []string) {
 
 	c.podMinDuration = uint64(podMindDuration)
@@ -505,4 +497,28 @@ func subtractUnwantedRepeatations(c *AdSlotDurationCombinations) {
 // 2. Sum of duration (combinationo) is out of Pod Min or Pod Max duration
 func (c *AdSlotDurationCombinations) getInvalidCombinatioCount() int {
 	return c.repeatationsCount + c.outOfRangeCount
+}
+
+// GetCurrentCombinationCount returns current combination count
+// irrespective of whether it is valid combination
+func (c *AdSlotDurationCombinations) GetCurrentCombinationCount() int {
+	return c.currentCombinationCount
+}
+
+// GetExpectedCombinationCount returns total number for possible combinations without validations
+// but subtracts repeatations for duration with single ad
+func (c *AdSlotDurationCombinations) GetExpectedCombinationCount() uint64 {
+	return c.totalExpectedCombinations
+}
+
+// GetOutOfRangeCombinationsCount returns number of combinations currently rejected because of
+// not satisfying Pod Minimum and Maximum duration
+func (c *AdSlotDurationCombinations) GetOutOfRangeCombinationsCount() int {
+	return c.outOfRangeCount
+}
+
+//GetRepeatedDurationCombinationCount returns number of combinations currently rejected because of containing
+//one or more repeatations of duration values, for which partners returned only single ad
+func (c *AdSlotDurationCombinations) GetRepeatedDurationCombinationCount() int {
+	return c.repeatationsCount
 }
