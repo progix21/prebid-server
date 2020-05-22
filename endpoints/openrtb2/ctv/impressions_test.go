@@ -468,9 +468,9 @@ func TestGetImpressions(t *testing.T) {
 			// assert.Equal(t, expected.impressionCount, len(pod.Slots), "Expected impression count = %v . But Found %v", expectedImpressionCount, len(pod.Slots))
 			assert.Equal(t, expected.freeTime, cfg.freeTime, "Expected Free Time = %v . But Found %v", expected.freeTime, cfg.freeTime)
 			assert.Equal(t, expected.closedMinDuration, cfg.podMinDuration, "Expected closedMinDuration= %v . But Found %v", expected.closedMinDuration, cfg.podMinDuration)
-			assert.Equal(t, expected.closedMaxDuration, cfg.podMaxDuration, "Expected closedMaxDuration= %v . But Found %v", expected.closedMaxDuration, cfg.podMaxDuration)
+			assert.Equal(t, expected.closedMaxDuration, cfg.podMaxDuration, "Expected closedMinDuration= %v . But Found %v", expected.closedMaxDuration, cfg.podMaxDuration)
 			assert.Equal(t, expected.closedSlotMinDuration, cfg.slotMinDuration, "Expected closedSlotMinDuration= %v . But Found %v", expected.closedSlotMinDuration, cfg.slotMinDuration)
-			assert.Equal(t, expected.closedSlotMaxDuration, cfg.slotMaxDuration, "Expected closedSlotMaxDuration= %v . But Found %v", expected.closedSlotMaxDuration, cfg.slotMaxDuration)
+			assert.Equal(t, expected.closedSlotMaxDuration, cfg.slotMaxDuration, "Expected closedSlotMinDuration= %v . But Found %v", expected.closedSlotMaxDuration, cfg.slotMaxDuration)
 			assert.Equal(t, expected.output, cfg.Slots, "2darray mismatch")
 		})
 	}
