@@ -410,6 +410,51 @@ var impressionsTests = []struct {
 		closedMaxDuration:     120,
 		closedSlotMinDuration: 5,
 		closedSlotMaxDuration: 45,
+	}}, {scenario: "TC42", in: []int{1, 1, 1, 1, 1, 1}, out: Expected{
+		impressionCount: 0,
+		freeTime:        0,
+		output:          [][2]int64{},
+
+		closedMinDuration:     0,
+		closedMaxDuration:     0,
+		closedSlotMinDuration: 0,
+		closedSlotMaxDuration: 0,
+	}}, {scenario: "TC43", in: []int{2, 2, 2, 2, 2, 2}, out: Expected{
+		impressionCount: 0,
+		freeTime:        0,
+		output:          [][2]int64{},
+
+		closedMinDuration:     0,
+		closedMaxDuration:     0,
+		closedSlotMinDuration: 0,
+		closedSlotMaxDuration: 0,
+	}}, {scenario: "TC44", in: []int{0, 0, 0, 0, 0, 0}, out: Expected{
+		impressionCount: 0,
+		freeTime:        0,
+		output:          [][2]int64{},
+
+		closedMinDuration:     0,
+		closedMaxDuration:     0,
+		closedSlotMinDuration: 0,
+		closedSlotMaxDuration: 0,
+	}}, {scenario: "TC45", in: []int{-1, -2, -3, -4, -5, -6}, out: Expected{
+		impressionCount: 0,
+		freeTime:        0,
+		output:          [][2]int64{},
+
+		closedMinDuration:     5,
+		closedMaxDuration:     -5,
+		closedSlotMinDuration: 0,
+		closedSlotMaxDuration: -5,
+	}}, {scenario: "TC46", in: []int{-1, -1, -1, -1, -1, -1}, out: Expected{
+		impressionCount: 0,
+		freeTime:        0,
+		output:          [][2]int64{},
+
+		closedMinDuration:     0,
+		closedMaxDuration:     0,
+		closedSlotMinDuration: 0,
+		closedSlotMaxDuration: 0,
 	}},
 }
 
@@ -423,9 +468,9 @@ func TestGetImpressions(t *testing.T) {
 			// assert.Equal(t, expected.impressionCount, len(pod.Slots), "Expected impression count = %v . But Found %v", expectedImpressionCount, len(pod.Slots))
 			assert.Equal(t, expected.freeTime, cfg.freeTime, "Expected Free Time = %v . But Found %v", expected.freeTime, cfg.freeTime)
 			assert.Equal(t, expected.closedMinDuration, cfg.podMinDuration, "Expected closedMinDuration= %v . But Found %v", expected.closedMinDuration, cfg.podMinDuration)
-			assert.Equal(t, expected.closedMaxDuration, cfg.podMaxDuration, "Expected closedMinDuration= %v . But Found %v", expected.closedMaxDuration, cfg.podMaxDuration)
+			assert.Equal(t, expected.closedMaxDuration, cfg.podMaxDuration, "Expected closedMaxDuration= %v . But Found %v", expected.closedMaxDuration, cfg.podMaxDuration)
 			assert.Equal(t, expected.closedSlotMinDuration, cfg.slotMinDuration, "Expected closedSlotMinDuration= %v . But Found %v", expected.closedSlotMinDuration, cfg.slotMinDuration)
-			assert.Equal(t, expected.closedSlotMaxDuration, cfg.slotMaxDuration, "Expected closedSlotMinDuration= %v . But Found %v", expected.closedSlotMaxDuration, cfg.slotMaxDuration)
+			assert.Equal(t, expected.closedSlotMaxDuration, cfg.slotMaxDuration, "Expected closedSlotMaxDuration= %v . But Found %v", expected.closedSlotMaxDuration, cfg.slotMaxDuration)
 			assert.Equal(t, expected.output, cfg.Slots, "2darray mismatch")
 		})
 	}
