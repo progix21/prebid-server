@@ -12,6 +12,7 @@ type ICombination interface {
 // Combination ...
 type Combination struct {
 	ICombination
+	data      []int
 	generator PodDurationCombination
 	config    *openrtb_ext.VideoAdPod
 }
