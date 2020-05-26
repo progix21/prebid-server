@@ -25,7 +25,7 @@ type Combination struct {
 // Use Get method to start getting valid combinations
 func NewCombination(buckets BidsBuckets, config *openrtb_ext.VideoAdPod) *Combination {
 	generator := new(PodDurationCombination)
-	durationBidsCnts := make([][2]uint64, len(buckets))
+	durationBidsCnts := make([][2]uint64, 0)
 	for duration, bids := range buckets {
 		durationBidsCnts = append(durationBidsCnts, [2]uint64{uint64(duration), uint64(len(bids))})
 	}
