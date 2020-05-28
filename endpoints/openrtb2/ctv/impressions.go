@@ -2,7 +2,6 @@
 package ctv
 
 import (
-	"log"
 	"math"
 
 	"github.com/PubMatic-OpenWrap/prebid-server/openrtb_ext"
@@ -136,7 +135,7 @@ func getImpressions(podMinDuration, podMaxDuration int64, vPod openrtb_ext.Video
 	// also check algoritm computed the no. of ads
 	if cfg.requestedPodMaxDuration-time > 0 && len(cfg.Slots) > 0 {
 		cfg.freeTime = cfg.requestedPodMaxDuration - time
-		log.Println("TO STATS SERVER : Free Time not allocated ", cfg.freeTime, "sec")
+		Logf("TO STATS SERVER : Free Time not allocated %v sec", cfg.freeTime)
 	}
 
 	Logf("\nTotal Impressions = %v, Total Allocated Time = %v sec (out of %v sec, Max Pod Duration)\n%v", len(cfg.Slots), *cfg.totalSlotTime, cfg.requestedPodMaxDuration, cfg.Slots)
@@ -206,7 +205,7 @@ func computeTimeForEachAdSlot(cfg adPodConfig, totalAds int64) int64 {
 	// In such case timeForEachSlot no necessarily to be multiples of given number
 	if timeForEachSlot < cfg.slotMinDuration || timeForEachSlot > cfg.slotMaxDuration {
 		Logf("timeForEachSlot (%v) < cfg.slotMinDuration (%v) || timeForEachSlot (%v) > cfg.slotMaxDuration (%v)", timeForEachSlot, cfg.slotMinDuration, timeForEachSlot, cfg.slotMaxDuration)
-		Logf("Hence, not computing multiples of %v value.")
+		Logf("Hence, not computing multiples of %v value.", multipleOf)
 		// need that division again
 		return cfg.podMaxDuration / totalAds
 	}

@@ -516,9 +516,6 @@ var impressionsTests = []struct {
 
 func TestGetImpressions(t *testing.T) {
 	for _, impTest := range impressionsTests {
-		// if impTest.scenario != "TC21" {
-		// 	continue
-		// }
 		t.Run(impTest.scenario, func(t *testing.T) {
 			p := newTestPod(int64(impTest.in[0]), int64(impTest.in[1]), impTest.in[2], impTest.in[3], impTest.in[4], impTest.in[5])
 			cfg, _ := getImpressions(p.podMinDuration, p.podMaxDuration, p.vPod)
