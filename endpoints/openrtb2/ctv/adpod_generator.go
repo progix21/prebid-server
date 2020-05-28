@@ -2,6 +2,7 @@ package ctv
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/PubMatic-OpenWrap/prebid-server/openrtb_ext"
@@ -44,7 +45,7 @@ func NewAdPodGenerator(buckets BidsBuckets, comb ICombination, adpod *openrtb_ex
 
 //GetAdPodBids will return Adpod based on configurations
 func (o *AdPodGenerator) GetAdPodBids() *AdPodBid {
-
+	defer TimeTrack(time.Now(), "adpodgenerator")
 	isTimedOutORReceivedAllResponses := false
 	responseCount := 0
 	totalRequest := 0
@@ -66,7 +67,7 @@ func (o *AdPodGenerator) GetAdPodBids() *AdPodBid {
 		go o.getUniqueBids(responseCh, durations)
 	}
 
-	for !isTimedOutORReceivedAllResponses {
+	for totalRequest > 0 && !isTimedOutORReceivedAllResponses {
 		select {
 		case <-ctx.Done():
 			isTimedOutORReceivedAllResponses = true
@@ -81,7 +82,7 @@ func (o *AdPodGenerator) GetAdPodBids() *AdPodBid {
 		}
 	}
 
-	go cleanupResponseChannel(responseCh, totalRequest-responseCount)
+	defer cleanupResponseChannel(responseCh, totalRequest-responseCount)
 
 	if 0 == len(results) {
 		return nil
@@ -128,6 +129,8 @@ func cleanupResponseChannel(responseCh <-chan *highestCombination, responseCount
 }
 
 func (o *AdPodGenerator) getUniqueBids(responseCh chan<- *highestCombination, durationSequence []int) {
+	defer TimeTrack(time.Now(), fmt.Sprintf("getUniqueBids:%v", durationSequence))
+
 	data := [][]*Bid{}
 	combinations := []int{}
 
