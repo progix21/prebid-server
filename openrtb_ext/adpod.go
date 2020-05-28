@@ -298,14 +298,14 @@ func (pod *VideoAdPod) ValidateAdPodDurations(minDuration, maxDuration, maxExten
 
 	//adpod.adminduration*adpod.minads should be greater than or equal to video.minduration
 	if nil != pod.MinAds && nil != pod.MinDuration {
-		if int64((*pod.MinAds)*(*pod.MinDuration)) < minDuration {
+		if minDuration <= int64((*pod.MinDuration) * (*pod.MinAds)) {
 			err = append(err, errInvalidMinDurationRange)
 		}
 	}
 
 	//adpod.admaxduration*adpod.maxads should be less than or equal to video.maxduration + video.maxextended
-	if maxExtended > 0 && nil != pod.MaxAds && nil != pod.MaxDuration {
-		if int64((*pod.MaxAds)*(*pod.MaxDuration)) > (maxDuration + maxExtended) {
+	if maxExtended > 0 && nil != pod.MinAds && nil != pod.MinDuration {
+		if (maxDuration + maxExtended) >= int64((*pod.MinAds) * (*pod.MinDuration)) {
 			err = append(err, errInvalidMaxDurationRange)
 		}
 	}
