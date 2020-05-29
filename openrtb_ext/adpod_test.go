@@ -60,7 +60,7 @@ func TestVideoAdPod_Validate(t *testing.T) {
 			fields: fields{
 				MinDuration: getIntPtr(0),
 			},
-			wantErr: errInvalidMinDuration,
+			wantErr: nil,
 		},
 		{
 			name: "ErrInvalidMaxDuration",
@@ -74,7 +74,7 @@ func TestVideoAdPod_Validate(t *testing.T) {
 			fields: fields{
 				MaxDuration: getIntPtr(0),
 			},
-			wantErr: errInvalidMaxDuration,
+			wantErr: nil,
 		},
 		{
 			name: "ErrInvalidAdvertiserExclusionPercent_NegativeValue",
@@ -145,7 +145,11 @@ func TestVideoAdPod_Validate(t *testing.T) {
 				IABCategoryExclusionPercent: tt.fields.IABCategoryExclusionPercent,
 			}
 
-			actualErr := pod.Validate()
+			actualErrs := pod.Validate()
+			var actualErr error
+			if len(actualErrs) > 0 {
+				actualErr = actualErrs[0]
+			}
 			assert.Equal(t, tt.wantErr, actualErr)
 		})
 	}
@@ -213,7 +217,7 @@ func TestExtRequestAdPod_Validate(t *testing.T) {
 					MinAds: getIntPtr(-1),
 				},
 			},
-			wantErr: errInvalidMinAds,
+			wantErr: getRequestAdPodError(errInvalidMinAds),
 		},
 		{
 			name: "Valid",
@@ -244,7 +248,11 @@ func TestExtRequestAdPod_Validate(t *testing.T) {
 				IABCategoryExclusionWindow:          tt.fields.IABCategoryExclusionWindow,
 				AdvertiserExclusionWindow:           tt.fields.AdvertiserExclusionWindow,
 			}
-			actualErr := ext.Validate()
+			actualErrs := ext.Validate()
+			var actualErr error
+			if len(actualErrs) > 0 {
+				actualErr = actualErrs[0]
+			}
 			assert.Equal(t, tt.wantErr, actualErr)
 		})
 	}
@@ -274,7 +282,7 @@ func TestExtVideoAdPod_Validate(t *testing.T) {
 					MinAds: getIntPtr(-1),
 				},
 			},
-			wantErr: errInvalidMinAds,
+			wantErr: getRequestAdPodError(errInvalidMinAds),
 		},
 		{
 			name: "Valid",
@@ -299,7 +307,11 @@ func TestExtVideoAdPod_Validate(t *testing.T) {
 				Offset: tt.fields.Offset,
 				AdPod:  tt.fields.AdPod,
 			}
-			actualErr := ext.Validate()
+			actualErrs := ext.Validate()
+			var actualErr error
+			if len(actualErrs) > 0 {
+				actualErr = actualErrs[0]
+			}
 			assert.Equal(t, tt.wantErr, actualErr)
 		})
 	}
